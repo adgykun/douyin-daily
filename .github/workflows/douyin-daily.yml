@@ -1,0 +1,49 @@
+name: douyin-daily
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      max:
+        description: '本轮最多处理作品数'
+        required: false
+        default: '30'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: douyin-daily
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium --with-deps
+      - name: Run
+        env:
+          DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
+          DOUYIN_URL: ${{ secrets.DOUYIN_URL }}
+          WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
+          WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
+          WEBDAV_PASS: ${{ secrets.WEBDAV_PASS }}
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          MAX_PER_RUN: ${{ github.event.inputs.max || '30' }}
+        run: python main.py
+      - name: Commit history
+        if: always()
+        run: |
+          git config user.name "douyin-bot"
+          git config user.email "bot@noreply.github.com"
+          git add history.json
+          git diff --cached --quiet || git commit -m "chore: update history"
+          git push || true
