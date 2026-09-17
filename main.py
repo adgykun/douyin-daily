@@ -133,8 +133,7 @@ def process(item):
     aid = item["aweme_id"]
     desc = (item.get("desc") or "")[:40]
     files = []
-    gear_info = None
-      vd1080 = None
+    gear_info = None; vd1080 = None
     images = item.get("images") or []
     if images:
         for i, img in enumerate(images):
