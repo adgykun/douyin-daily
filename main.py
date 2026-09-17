@@ -131,10 +131,11 @@ def process(item):
     aid = item["aweme_id"]
     desc = (item.get("desc") or "")[:40]
     files = []
+    gear_info = None
     images = item.get("images") or []
     if images:
         for i, img in enumerate(images):
-            urls = img.get("download_url_list") or img.get("url_list") or []
+            urls = img.get("url_list") or img.get("download_url_list") or []
             if not urls:
                 continue
             data = fetch(urls[-1])
@@ -157,6 +158,10 @@ def process(item):
         if brs:
             best = max(brs, key=lambda b: b.get("bit_rate", 0))
             url = ((best.get("play_addr") or {}).get("url_list") or [None])[0]
+            gear_info = {"chosen_gear": best.get("gear_name"), "chosen_bitrate": best.get("bit_rate"),
+                         "resolution": f"{video.get('width')}x{video.get('height')}",
+                         "all_gears": [[b.get("gear_name"), b.get("bit_rate")] for b in brs]}
+            print(f"[quality] {aid} -> {gear_info}")
         if not url:
             url = ((video.get("play_addr") or {}).get("url_list") or [None])[0]
         if url:
@@ -173,7 +178,7 @@ def process(item):
             if md and wd_put(f"douyin/{DATE}/{aid}_music.mp3", md):
                 files.append(f"douyin/{DATE}/{aid}_music.mp3")
     meta = {"aweme_id": aid, "desc": desc, "date": DATE, "create": item.get("create_time"),
-            "files": files,
+        "quality": gear_info, "files": files,
             "stats": {k: (item.get("statistics") or {}).get(k) for k in ("digg_count", "comment_count", "share_count")}}
     if wd_put(f"douyin/{DATE}/{aid}_meta.json", json.dumps(meta, ensure_ascii=False, indent=2).encode()):
         files.append(f"douyin/{DATE}/{aid}_meta.json")
