@@ -184,8 +184,10 @@ def process(item):
     return False
 
 def main():
+    global new_cnt, skip_cnt
     crawl()
     items = list(collected.values())
+    print(f"[info] 抓到作品 {len(items)} 条,历史已存 {len(history)} 条")
     if not items and history:
         p0("异常空列表:本轮未抓到任何作品但历史有记录,可能是风控或主页变动,请检查。")
         sys.exit(3)
@@ -197,17 +199,21 @@ def main():
     for it in items:
         if done >= MAX_PER_RUN:
             break
-        aid = it["aweme_id"]
+        aid = it.get("aweme_id")
+        if not aid:
+            continue
         if aid in history:
             skip_cnt += 1
             continue
         try:
             if process(it):
                 done += 1
+                print(f"[ok] {aid} 已保存")
         except Exception as e:
             fails.append(f"{aid} 异常:{e}")
         time.sleep(random.randint(3, 8))
     json.dump(history, open(HIST_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    print(f"[info] 本轮:新增{new_cnt} 跳过{skip_cnt} 失败{len(fails)}")
     if new_cnt or fails:
         lines = "<br>".join(f"· {f}" for f in fails[:5]) or "无"
         push(f"【抖音日报】新增{new_cnt} 跳过{skip_cnt} 失败{len(fails)}",
