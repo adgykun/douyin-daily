@@ -140,7 +140,7 @@ def process(item):
             urls = img.get("url_list") or img.get("download_url_list") or []
             if not urls:
                 continue
-            data = fetch(urls[-1])
+            data = fetch(re.sub(r"~tplv-[^?]+", "~tplv-dy-aweme-original:jpeg", urls[-1]), retry=1) or fetch(urls[-1])
             if data is None:
                 fails.append(f"{aid} 图{i} 下载失败"); continue
             path = f"douyin/{DATE}/{aid}_img{i}.{guess_ext(urls[-1])}"
