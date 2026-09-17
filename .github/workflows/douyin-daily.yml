@@ -2,7 +2,9 @@ name: douyin-daily
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *'    # 北京时间 08:00
+    - cron: '0 4 * * *'    # 北京时间 12:00
+    - cron: '0 12 * * *'   # 北京时间 20:00
   workflow_dispatch:
     inputs:
       max:
