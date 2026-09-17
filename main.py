@@ -133,7 +133,7 @@ def process(item):
     aid = item["aweme_id"]
     desc = (item.get("desc") or "")[:40]
     files = []
-    gear_info = None; vd1080 = None
+    gear_info = None
     images = item.get("images") or []
     if images:
         for i, img in enumerate(images):
@@ -164,38 +164,10 @@ def process(item):
                          "resolution": f"{video.get('width')}x{video.get('height')}",
                          "all_gears": [[b.get("gear_name"), b.get("bit_rate")] for b in brs]}
         print(f"[quality] {aid} -> {gear_info}")
-            uri = (video.get("play_addr") or {}).get("uri") or ""
-            if uri and "1080" not in str(best.get("gear_name")):
-                cand = "https://www.douyin.com/aweme/v1/play/?video_id=" + uri + "&ratio=1080p&line=0"
-                cd = fetch(cand)
-                if cd and len(cd) > 100000:
-                    open("_cand.mp4", "wb").write(cd)
-                    import subprocess
-                    cb = 0
-                    try:
-                        out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
-                              "-show_entries", "stream=width,height,bit_rate",
-                              "-of", "csv=p=0", "_cand.mp4"],
-                              capture_output=True, text=True, timeout=60).stdout.strip()
-                        parts = (out.split(",") + ["0", "0", "0"])[:3]
-                        w, h, cb = parts[0], parts[1], int(float(parts[2] or 0))
-                        if int(h or 0) >= 1080 and (cb == 0 or cb > int(gear_info["chosen_bitrate"] or 0)):
-                            vd1080 = cd
-                            gear_info = {"chosen_gear": "play_1080p_verified",
-                                         "chosen_bitrate": cb or int(gear_info["chosen_bitrate"] or 0),
-                                         "resolution": f"{w}x{h}",
-                                         "all_gears": gear_info["all_gears"]}
-                            print(f"[quality] {aid} upgraded to 1080p")
-                    except Exception as e:
-                        print(f"[quality] probe failed: {e}")
-                    try:
-                        os.remove("_cand.mp4")
-                    except Exception:
-                        pass
         if not url:
             url = ((video.get("play_addr") or {}).get("url_list") or [None])[0]
         if url:
-            vd = vd1080 or fetch(url)
+            vd = fetch(url)
             if vd is None:
                 fails.append(f"{aid} 视频下载失败")
             elif wd_put(f"douyin/{DATE}/{aid}_video.mp4", vd):
