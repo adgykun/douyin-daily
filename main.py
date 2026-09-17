@@ -167,7 +167,7 @@ def process(item):
         if not url:
             url = ((video.get("play_addr") or {}).get("url_list") or [None])[0]
         if url:
-                        t = try1080(video, gear_info, fetch); vd, gear_info = t[0] or fetch(url), t[1]
+            t = try1080(video, gear_info, fetch); vd, gear_info = t[0] or fetch(url), t[1]
             if vd is None:
                 fails.append(f"{aid} 视频下载失败")
             elif wd_put(f"douyin/{DATE}/{aid}_video.mp4", vd):
