@@ -8,7 +8,7 @@ SHARE_URL = os.environ["DOUYIN_URL"]
 WD_URL = os.environ["WEBDAV_URL"].rstrip("/")
 WD_USER = os.environ["WEBDAV_USER"]
 WD_PASS = os.environ["WEBDAV_PASS"]
-PP_TOKEN = os.environ["PUSHPLUS_TOKEN"]
+FEISHU_WEBHOOK = os.environ["FEISHU_WEBHOOK"]
 MAX_PER_RUN = int(os.environ.get("MAX_PER_RUN", "30"))
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 BJ = timezone(timedelta(hours=8))
@@ -27,11 +27,13 @@ new_cnt = 0
 skip_cnt = 0
 
 def push(title, content, retry=2):
+    text = f"{title}\n{content}".replace("<br>", "\n").replace("<b>", "").replace("</b>", "")
     for _ in range(retry + 1):
         try:
-            r = requests.post("https://www.pushplus.plus/send",
-                json={"token": PP_TOKEN, "title": title, "content": content, "template": "html"}, timeout=15)
-            if r.status_code == 200 and r.json().get("code") == 200:
+            r = requests.post(FEISHU_WEBHOOK,
+                json={"msg_type": "text", "content": {"text": text[:3000]}}, timeout=15)
+            j = r.json()
+            if r.status_code == 200 and j.get("code", j.get("StatusCode", -1)) == 0:
                 return True
         except Exception:
             pass
