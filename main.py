@@ -129,6 +129,7 @@ def crawl():
             page.mouse.wheel(0, 3000)
             page.wait_for_timeout(2000 + random.randint(500, 2000))
             empty_rounds = empty_rounds + 1 if len(collected) == before else 0
+        print(f"[diag] url={page.url} bodylen={len(page.content())} api={api_status} items={len(collected)}")
         browser.close()
 
 def process(item):
