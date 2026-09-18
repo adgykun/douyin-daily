@@ -115,12 +115,12 @@ def crawl():
             except Exception:
                 pass
             time.sleep(5)
-        if ("verify" in page.url) or ("captcha" in page.url):
-            p0("触发抖音验证码风控:本轮暂停,下一班自动再试。")
-            browser.close(); sys.exit(5)
             for _ in range(5):
                 page.mouse.wheel(0, 3000)
                 page.wait_for_timeout(2500)
+        if ("verify" in page.url) or ("captcha" in page.url):
+            p0("触发抖音验证码风控:本轮暂停,下一班自动再试。")
+            browser.close(); sys.exit(5)
         try:
             page.wait_for_url("**/user/**", timeout=30000)
         except Exception:
@@ -249,7 +249,7 @@ def main():
             fails.append(f"{aid} 异常:{e}")
         time.sleep(random.randint(3, 8))
     json.dump(history, open(HIST_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-        if run_records:
+    if run_records:
         stamp = datetime.now(BJ).strftime("%Y-%m-%d_%H%M%S")
         summary = {"crawl_time": stamp, "count": len(run_records), "works": run_records}
         wd_put(f"douyin/{DATE}/汇总_{stamp}.json", json.dumps(summary, ensure_ascii=False, indent=2).encode())
