@@ -140,7 +140,8 @@ def crawl():
             page.mouse.wheel(0, 3000)
             page.wait_for_timeout(2000 + random.randint(500, 2000))
             empty_rounds = empty_rounds + 1 if len(collected) == before else 0
-        print(f"[diag] url={page.url} bodylen={len(page.content())} api={api_status} items={len(collected)}")
+        _b = page.content()
+        print(f"[diag] bodylen={len(_b)} api={api_status} items={len(collected)} cap={'验证码' in _b or 'captcha' in _b.lower()}")
         browser.close()
 
 def process(item):
