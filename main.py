@@ -4,12 +4,12 @@ import requests; from knock import try1080
 from playwright.sync_api import sync_playwright
 
 COOKIE = os.environ["DOUYIN_COOKIE"]
-SHARE_URL = os.environ["DOUYIN_URL"]
+SHARE_URLS = [u.split("?")[0].strip() for u in os.environ["DOUYIN_URL"].replace(",", "\n").splitlines() if u.strip()]
 WD_URL = os.environ["WEBDAV_URL"].rstrip("/")
 WD_USER = os.environ["WEBDAV_USER"]
 WD_PASS = os.environ["WEBDAV_PASS"]
 FEISHU_WEBHOOK = os.environ["FEISHU_WEBHOOK"]
-MAX_PER_RUN = int(os.environ.get("MAX_PER_RUN", "30"))
+MAX_PER_RUN = int(os.environ.get("MAX_PER_RUN", "10"))
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 BJ = timezone(timedelta(hours=8))
 DATE = datetime.now(BJ).strftime("%Y-%m-%d")
@@ -23,6 +23,8 @@ if os.path.exists(HIST_FILE):
         history = {}
 
 fails = []
+used_names = set()
+run_records = []
 new_cnt = 0
 skip_cnt = 0
 
@@ -74,9 +76,6 @@ def fetch(url, retry=3):
         except Exception:
             pass
         time.sleep(5)
-        if ("verify" in page.url) or ("captcha" in page.url):
-            p0("触发抖音验证码风控:本轮暂停,下一班自动再试。")
-            browser.close(); sys.exit(5)
     return None
 
 def guess_ext(url, default="jpg"):
@@ -108,14 +107,26 @@ def crawl():
                 cookies.append({"name": k.strip(), "value": v.strip(), "domain": ".douyin.com", "path": "/"})
         ctx.add_cookies(cookies)
         page = ctx.new_page()
-        page.on("response", on_resp)
-        page.goto(SHARE_URL, wait_until="domcontentloaded", timeout=60000)
+        page.on("response", on_resp)        
+        for u in SHARE_URLS:
+            page.goto(u, wait_until="domcontentloaded", timeout=60000)
+            try:
+                page.wait_for_url("**/user/**", timeout=30000)
+            except Exception:
+                pass
+            time.sleep(5)
+        if ("verify" in page.url) or ("captcha" in page.url):
+            p0("触发抖音验证码风控:本轮暂停,下一班自动再试。")
+            browser.close(); sys.exit(5)
+            for _ in range(5):
+                page.mouse.wheel(0, 3000)
+                page.wait_for_timeout(2500)
         try:
             page.wait_for_url("**/user/**", timeout=30000)
         except Exception:
             pass
         time.sleep(5)
-        if api_status and api_status[0] not in (0,):
+        if api_status and all(s not in (0,) for s in api_status):
             p0(f"Cookie 疑似失效(API status_code={api_status[0]}),请更新 Secrets 中 DOUYIN_COOKIE。")
             browser.close(); sys.exit(2)
         if not collected:
@@ -134,7 +145,14 @@ def crawl():
 
 def process(item):
     global new_cnt
-    aid = item["aweme_id"]
+    hid = item["aweme_id"]
+    cdate = datetime.fromtimestamp(int(item.get("create_time") or 0), BJ).strftime("%Y-%m-%d") if item.get("create_time") else DATE
+    safe = re.sub(r"[^\w.-]+", "_", ((item.get("desc") or "")[:40]).strip()) or "untitled"
+    aid = f"{cdate}_{safe}"
+    n = 1
+    while aid in used_names:
+        aid = f"{cdate}_{safe}({n})"; n += 1
+    used_names.add(aid)
     desc = (item.get("desc") or "")[:40]
     files = []
     gear_info = None
@@ -144,19 +162,24 @@ def process(item):
             urls = img.get("url_list") or img.get("download_url_list") or []
             if not urls:
                 continue
-            data = fetch(re.sub(r"~tplv-[^?]+", "~tplv-dy-aweme-original:jpeg", urls[-1]), retry=1) or fetch(urls[-1])
-            if data is None:
-                fails.append(f"{aid} 图{i} 下载失败"); continue
-            path = f"douyin/{DATE}/{aid}_img{i}.{guess_ext(urls[-1])}"
-            if wd_put(path, data):
-                files.append(path)
-            else:
-                fails.append(f"{aid} 图{i} 上传失败")
             lv = ((img.get("video") or {}).get("play_addr") or {}).get("url_list") or []
+            live_ok = False
             if lv:
                 vd = fetch(lv[0])
                 if vd and wd_put(f"douyin/{DATE}/{aid}_img{i}_live.mp4", vd):
                     files.append(f"douyin/{DATE}/{aid}_img{i}_live.mp4")
+                    live_ok = True
+                else:
+                    fails.append(f"{aid} 图{i} 动态失败")
+            if not live_ok:
+                data = fetch(re.sub(r"~tplv-[^?]+", "~tplv-dy-aweme-original:jpeg", urls[-1]), retry=1) or fetch(urls[-1])
+                if data is None:
+                    fails.append(f"{aid} 图{i} 下载失败"); continue
+                path = f"douyin/{DATE}/{aid}_img{i}.{guess_ext(urls[-1])}"
+                if wd_put(path, data):
+                    files.append(path)
+                else:
+                    fails.append(f"{aid} 图{i} 上传失败")
     else:
         video = item.get("video") or {}
         brs = video.get("bit_rate") or []
@@ -183,13 +206,11 @@ def process(item):
             md = fetch(mu[0])
             if md and wd_put(f"douyin/{DATE}/{aid}_music.mp3", md):
                 files.append(f"douyin/{DATE}/{aid}_music.mp3")
-    meta = {"aweme_id": aid, "desc": desc, "date": DATE, "create": item.get("create_time"),
-        "quality": gear_info, "files": files,
-            "stats": {k: (item.get("statistics") or {}).get(k) for k in ("digg_count", "comment_count", "share_count")}}
-    if wd_put(f"douyin/{DATE}/{aid}_meta.json", json.dumps(meta, ensure_ascii=False, indent=2).encode()):
-        files.append(f"douyin/{DATE}/{aid}_meta.json")
+    run_records.append({"aweme_id": hid, "title": desc, "publish_date": cdate,
+                        "quality": gear_info, "files": files,
+                        "stats": {k: (item.get("statistics") or {}).get(k) for k in ("digg_count", "comment_count", "share_count")}})
     if files:
-        history[aid] = {"date": DATE, "files": len(files), "desc": desc}
+        history[hid] = {"date": DATE, "files": len(files), "desc": desc}
         new_cnt += 1
         return True
     return False
@@ -228,6 +249,10 @@ def main():
             fails.append(f"{aid} 异常:{e}")
         time.sleep(random.randint(3, 8))
     json.dump(history, open(HIST_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+        if run_records:
+        stamp = datetime.now(BJ).strftime("%Y-%m-%d_%H%M%S")
+        summary = {"crawl_time": stamp, "count": len(run_records), "works": run_records}
+        wd_put(f"douyin/{DATE}/汇总_{stamp}.json", json.dumps(summary, ensure_ascii=False, indent=2).encode())
     print(f"[info] 本轮:新增{new_cnt} 跳过{skip_cnt} 失败{len(fails)}")
     if new_cnt or fails:
         lines = "<br>".join(f"· {f}" for f in fails[:5]) or "无"
