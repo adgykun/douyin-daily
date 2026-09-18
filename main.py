@@ -73,7 +73,10 @@ def fetch(url, retry=3):
                 return r.content
         except Exception:
             pass
-        time.sleep(4 * (i + 1))
+        time.sleep(5)
+        if ("verify" in page.url) or ("captcha" in page.url):
+            p0("触发抖音验证码风控:本轮暂停,下一班自动再试。")
+            browser.close(); sys.exit(5)
     return None
 
 def guess_ext(url, default="jpg"):
@@ -193,6 +196,10 @@ def process(item):
 def main():
     global new_cnt, skip_cnt
     crawl()
+    if not collected:
+        print("[warn] 首轮空手,45秒后自动重试一次")
+        time.sleep(45)
+        crawl()
     items = list(collected.values())
     print(f"[info] 抓到作品 {len(items)} 条,历史已存 {len(history)} 条")
     if not items and history:
