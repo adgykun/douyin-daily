@@ -9,7 +9,7 @@ WD_URL = os.environ["WEBDAV_URL"].rstrip("/")
 WD_USER = os.environ["WEBDAV_USER"]
 WD_PASS = os.environ["WEBDAV_PASS"]
 FEISHU_WEBHOOK = os.environ["FEISHU_WEBHOOK"]
-MAX_PER_RUN = int(os.environ.get("MAX_PER_RUN", "10"))
+MAX_PER_RUN = int(os.environ.get("MAX_PER_RUN", "30"))
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 BJ = timezone(timedelta(hours=8))
 DATE = datetime.now(BJ).strftime("%Y-%m-%d")
