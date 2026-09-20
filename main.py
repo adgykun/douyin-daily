@@ -209,7 +209,7 @@ def process(item):
             else:
                 fails.append(f"{aid} 视频上传失败")
         mu = ((item.get("music") or {}).get("play_url") or {}).get("url_list") or []
-        if mu:
+        if False:
             md = fetch(mu[0])
             if md and wd_put(f"douyin/{DATE}/{aid}_music.mp3", md):
                 files.append(f"douyin/{DATE}/{aid}_music.mp3")
