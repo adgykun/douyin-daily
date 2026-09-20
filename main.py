@@ -115,9 +115,13 @@ def crawl():
             except Exception:
                 pass
             time.sleep(5)
-            for _ in range(5):
-                page.mouse.wheel(0, 9000)
-                page.wait_for_timeout(4500)
+            empty = 0
+            while empty < 8 and len(collected) < MAX_PER_RUN * 3:
+                before = len(collected)
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                page.keyboard.press("End")
+                page.wait_for_timeout(4000)
+                empty = 0 if len(collected) > before else empty + 1
         if ("verify" in page.url) or ("captcha" in page.url):
             p0("触发抖音验证码风控:本轮暂停,下一班自动再试。")
             browser.close(); sys.exit(5)
