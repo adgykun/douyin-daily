@@ -116,8 +116,8 @@ def crawl():
                 pass
             time.sleep(5)
             for _ in range(5):
-                page.mouse.wheel(0, 3000)
-                page.wait_for_timeout(2500)
+                page.mouse.wheel(0, 9000)
+                page.wait_for_timeout(4500)
         if ("verify" in page.url) or ("captcha" in page.url):
             p0("触发抖音验证码风控:本轮暂停,下一班自动再试。")
             browser.close(); sys.exit(5)
@@ -135,7 +135,7 @@ def crawl():
                 p0("Cookie 疑似失效(弹出登录墙),请更新 DOUYIN_COOKIE。")
                 browser.close(); sys.exit(2)
         empty_rounds = 0
-        while len(collected) < MAX_PER_RUN * 2 and empty_rounds < 3:
+        while len(collected) < MAX_PER_RUN * 3 and empty_rounds < 6:
             before = len(collected)
             page.mouse.wheel(0, 3000)
             page.wait_for_timeout(2000 + random.randint(500, 2000))
