@@ -115,11 +115,13 @@ def crawl():
             except Exception:
                 pass
             time.sleep(5)
+            page.mouse.move(720, 700)
+            page.evaluate("""() => { let b = null; for (const e of document.querySelectorAll('*')) { if (e.scrollHeight > e.clientHeight + 100 && e.clientHeight > 200) { if (!b || e.scrollHeight > b.scrollHeight) b = e; } } window.__sc = b || document.scrollingElement; }""")
             empty = 0
             while empty < 8 and len(collected) < MAX_PER_RUN * 3:
                 before = len(collected)
-                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                page.keyboard.press("End")
+                page.evaluate("window.__sc.scrollTop = window.__sc.scrollHeight")
+                page.mouse.wheel(0, 3000)
                 page.wait_for_timeout(4000)
                 empty = 0 if len(collected) > before else empty + 1
         if ("verify" in page.url) or ("captcha" in page.url):
