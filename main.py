@@ -146,7 +146,8 @@ def crawl():
             page.wait_for_timeout(2000 + random.randint(500, 2000))
             empty_rounds = empty_rounds + 1 if len(collected) == before else 0
         _b = page.content()
-        print(f"[diag] bodylen={len(_b)} api={api_status} items={len(collected)} cap={'\u9a8c\u8bc1\u7801' in _b or 'captcha' in _b.lower()}")
+        _cap = ("\u9a8c\u8bc1\u7801" in _b) or ("captcha" in _b.lower())
+        print(f"[diag] bodylen={len(_b)} api={api_status} items={len(collected)} cap={_cap}")
         browser.close()
 
 def process(item):
