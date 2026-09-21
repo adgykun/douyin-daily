@@ -1,1 +1,3 @@
-# douyin-daily
+https://www.douyin.com/user/MS4wLjABAAAA6-LZgnUQdLL4oCUac1PvOKG6usEFcYesnu55uq7ito-UOUmtTIg-PiMKHt5ADkvf
+https://www.douyin.com/user/MS4wLjABAAAAD11rQWreoJ1I6ejDpWqoXQDqTm6vvQhlvISix0p3gOrJt9umz6P0_vrBw-TW74t7
+https://www.douyin.com/user/MS4wLjABAAAAUNw56GG9fofH3ZL8C3vjWwKERmkex06ZkYH20LBW-pPzHnEBusjh7SzwniOSslAw
