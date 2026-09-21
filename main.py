@@ -24,7 +24,6 @@ if os.path.exists(HIST_FILE):
 
 fails = []
 used_names = set()
-run_records = []
 new_cnt = 0
 skip_cnt = 0
 
@@ -43,7 +42,7 @@ def push(title, content, retry=2):
     return False
 
 def p0(msg):
-    push("【抖音P0】" + msg[:60], f"<b>{msg}</b><br>日期:{DATE}<br>处理前系统暂停新增保存。")
+    push("[Douyin P0] " + msg[:60], f"<b>{msg}</b><br>Date:{DATE}<br>System paused new saves.")
 
 def wd(path):
     return f"{WD_URL}/{path}"
@@ -125,7 +124,7 @@ def crawl():
                 page.wait_for_timeout(4000)
                 empty = 0 if len(collected) > before else empty + 1
         if ("verify" in page.url) or ("captcha" in page.url):
-            p0("触发抖音验证码风控:本轮暂停,下一班自动再试。")
+            p0("Triggered Douyin captcha risk control: Pausing this run.")
             browser.close(); sys.exit(5)
         try:
             page.wait_for_url("**/user/**", timeout=30000)
@@ -133,12 +132,12 @@ def crawl():
             pass
         time.sleep(5)
         if api_status and all(s not in (0,) for s in api_status):
-            p0(f"Cookie 疑似失效(API status_code={api_status[0]}),请更新 Secrets 中 DOUYIN_COOKIE。")
+            p0(f"Cookie suspected invalid (API status_code={api_status[0]}), please update DOUYIN_COOKIE.")
             browser.close(); sys.exit(2)
         if not collected:
             body = page.content()
-            if "passport" in page.url or ("登录" in body and len(body) < 50000):
-                p0("Cookie 疑似失效(弹出登录墙),请更新 DOUYIN_COOKIE。")
+            if "passport" in page.url or ("\u767b\u5f55" in body and len(body) < 50000):
+                p0("Cookie suspected invalid (login wall popped up), please update DOUYIN_COOKIE.")
                 browser.close(); sys.exit(2)
         empty_rounds = 0
         while len(collected) < MAX_PER_RUN * 3 and empty_rounds < 6:
@@ -147,7 +146,7 @@ def crawl():
             page.wait_for_timeout(2000 + random.randint(500, 2000))
             empty_rounds = empty_rounds + 1 if len(collected) == before else 0
         _b = page.content()
-        print(f"[diag] bodylen={len(_b)} api={api_status} items={len(collected)} cap={'验证码' in _b or 'captcha' in _b.lower()}")
+        print(f"[diag] bodylen={len(_b)} api={api_status} items={len(collected)} cap={'\u9a8c\u8bc1\u7801' in _b or 'captcha' in _b.lower()}")
         browser.close()
 
 def process(item):
@@ -163,8 +162,38 @@ def process(item):
     desc = (item.get("desc") or "")[:40]
     files = []
     gear_info = None
+    
+    nick = re.sub(r"[^\w.-]+", "_", (((item.get("author") or {}).get("nickname")) or "unknown"))[:30] or "unknown"
+    folder = f"douyin/{nick}"
+    wd_mkdir(folder)
+    
+    # Cover folder (\u5c01\u9762 = 封面)
+    cover_folder = f"{folder}/\u5c01\u9762"
+    wd_mkdir(cover_folder)
+    
+    # Avatar logic
+    av_uri = (((item.get("author") or {}).get("avatar_larger") or {}).get("uri")) or ""
+    av_url = (((item.get("author") or {}).get("avatar_larger") or {}).get("url_list") or [""])[0]
+    if av_uri and history.get("_avatars", {}).get(nick) != av_uri:
+        stamp = datetime.now(BJ).strftime("%Y-%m-%d")
+        if av_url and wd_put(f"{folder}/avatar_{stamp}.jpg", fetch(av_url, retry=1)):
+            history.setdefault("_avatars", {})[nick] = av_uri
+
+    # Fetch Cover Image
+    cover_url = None
+    cover_ext = "jpg"
+    if item.get("video"):
+        cover_urls = ((item["video"].get("origin_cover") or item["video"].get("cover") or {}).get("url_list")) or []
+        if cover_urls:
+            cover_url = cover_urls[0]
+    
     images = item.get("images") or []
     if images:
+        c_urls = images[0].get("url_list") or []
+        if c_urls:
+            cover_url = re.sub(r"~tplv-[^?]+", "~tplv-dy-aweme-original:jpeg", c_urls[-1])
+            cover_ext = guess_ext(c_urls[-1])
+
         for i, img in enumerate(images):
             urls = img.get("url_list") or img.get("download_url_list") or []
             if not urls:
@@ -173,20 +202,20 @@ def process(item):
             live_ok = False
             if lv:
                 vd = fetch(lv[0])
-                if vd and wd_put(f"douyin/{DATE}/{aid}_img{i}_live.mp4", vd):
-                    files.append(f"douyin/{DATE}/{aid}_img{i}_live.mp4")
+                if vd and wd_put(f"{folder}/{aid}_img{i}_live.mp4", vd):
+                    files.append(f"{folder}/{aid}_img{i}_live.mp4")
                     live_ok = True
                 else:
-                    fails.append(f"{aid} 图{i} 动态失败")
+                    fails.append(f"{aid} img{i} live failed")
             if not live_ok:
                 data = fetch(re.sub(r"~tplv-[^?]+", "~tplv-dy-aweme-original:jpeg", urls[-1]), retry=1) or fetch(urls[-1])
                 if data is None:
-                    fails.append(f"{aid} 图{i} 下载失败"); continue
-                path = f"douyin/{DATE}/{aid}_img{i}.{guess_ext(urls[-1])}"
+                    fails.append(f"{aid} img{i} download failed"); continue
+                path = f"{folder}/{aid}_img{i}.{guess_ext(urls[-1])}"
                 if wd_put(path, data):
                     files.append(path)
                 else:
-                    fails.append(f"{aid} 图{i} 上传失败")
+                    fails.append(f"{aid} img{i} upload failed")
     else:
         video = item.get("video") or {}
         brs = video.get("bit_rate") or []
@@ -203,19 +232,23 @@ def process(item):
         if url:
             t = try1080(video, gear_info, fetch); vd, gear_info = t[0] or fetch(url), t[1]
             if vd is None:
-                fails.append(f"{aid} 视频下载失败")
-            elif wd_put(f"douyin/{DATE}/{aid}_video.mp4", vd):
-                files.append(f"douyin/{DATE}/{aid}_video.mp4")
+                fails.append(f"{aid} video download failed")
+            elif wd_put(f"{folder}/{aid}_video.mp4", vd):
+                files.append(f"{folder}/{aid}_video.mp4")
             else:
-                fails.append(f"{aid} 视频上传失败")
+                fails.append(f"{aid} video upload failed")
         mu = ((item.get("music") or {}).get("play_url") or {}).get("url_list") or []
         if False:
             md = fetch(mu[0])
-            if md and wd_put(f"douyin/{DATE}/{aid}_music.mp3", md):
-                files.append(f"douyin/{DATE}/{aid}_music.mp3")
-    run_records.append({"aweme_id": hid, "title": desc, "publish_date": cdate,
-                        "quality": gear_info, "files": files,
-                        "stats": {k: (item.get("statistics") or {}).get(k) for k in ("digg_count", "comment_count", "share_count")}})
+            if md and wd_put(f"{folder}/{aid}_music.mp3", md):
+                files.append(f"{folder}/{aid}_music.mp3")
+
+    # Save Cover
+    if cover_url:
+        cover_data = fetch(cover_url, retry=1)
+        if cover_data:
+            wd_put(f"{cover_folder}/{aid}.{cover_ext}", cover_data)
+                
     if files:
         history[hid] = {"date": DATE, "files": len(files), "desc": desc}
         new_cnt += 1
@@ -226,18 +259,18 @@ def main():
     global new_cnt, skip_cnt
     crawl()
     if not collected:
-        print("[warn] 首轮空手,45秒后自动重试一次")
+        print("[warn] Empty first round, auto-retrying in 45s")
         time.sleep(45)
         crawl()
     items = list(collected.values())
-    print(f"[info] 抓到作品 {len(items)} 条,历史已存 {len(history)} 条")
+    print(f"[info] Fetched {len(items)} items, history has {len(history)} items")
     if not items and history:
-        p0("异常空列表:本轮未抓到任何作品但历史有记录,可能是风控或主页变动,请检查。")
+        p0("Abnormal empty list: Fetched nothing but history has records. Risk control or profile change.")
         sys.exit(3)
     if not items and not history:
-        p0("首跑未抓到任何作品:请检查 DOUYIN_URL 与 DOUYIN_COOKIE 是否正确。")
+        p0("First run fetched nothing: Please check DOUYIN_URL and DOUYIN_COOKIE.")
         sys.exit(4)
-    wd_mkdir(f"douyin/{DATE}")
+        
     done = 0
     for it in items:
         if done >= MAX_PER_RUN:
@@ -251,19 +284,17 @@ def main():
         try:
             if process(it):
                 done += 1
-                print(f"[ok] {aid} 已保存")
+                print(f"[ok] {aid} saved")
         except Exception as e:
-            fails.append(f"{aid} 异常:{e}")
+            fails.append(f"{aid} exception:{e}")
         time.sleep(random.randint(3, 8))
+        
     json.dump(history, open(HIST_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-    if run_records:
-        stamp = datetime.now(BJ).strftime("%Y-%m-%d_%H%M%S")
-        summary = {"crawl_time": stamp, "count": len(run_records), "works": run_records}
-        wd_put(f"douyin/{DATE}/汇总_{stamp}.json", json.dumps(summary, ensure_ascii=False, indent=2).encode())
-    print(f"[info] 本轮:新增{new_cnt} 跳过{skip_cnt} 失败{len(fails)}")
+    
+    print(f"[info] This run: New {new_cnt}, Skipped {skip_cnt}, Failed {len(fails)}")
     if new_cnt or fails:
-        lines = "<br>".join(f"· {f}" for f in fails[:5]) or "无"
-        push(f"【抖音日报】新增{new_cnt} 跳过{skip_cnt} 失败{len(fails)}",
-             f"日期:{DATE}<br>新增:{new_cnt} 跳过:{skip_cnt}<br>失败明细:<br>{lines}")
+        lines = "<br>".join(f"· {f}" for f in fails[:5]) or "None"
+        push(f"[Douyin Daily] New {new_cnt}, Skipped {skip_cnt}, Failed {len(fails)}",
+             f"Date:{DATE}<br>New:{new_cnt} Skipped:{skip_cnt}<br>Failure details:<br>{lines}")
 
 main()
