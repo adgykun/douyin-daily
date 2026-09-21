@@ -42,7 +42,7 @@ def push(title, content, retry=2):
     return False
 
 def p0(msg):
-    push("[Douyin P0] " + msg[:60], f"<b>{msg}</b><br>Date:{DATE}<br>System paused new saves.")
+    push("\u3010\u6296\u97f3P0\u3011 " + msg[:60], f"<b>{msg}</b><br>Date:{DATE}<br>System paused new saves.")
 
 def wd(path):
     return f"{WD_URL}/{path}"
@@ -174,8 +174,10 @@ def housekeep(item):
     folder = f"douyin/{nick}"
     wd_mkdir(folder)
     wd_mkdir(f"{folder}/\u5c01\u9762")
-    av_uri = (((item.get("author") or {}).get("avatar_larger") or {}).get("uri")) or ""
-    av_url = (((item.get("author") or {}).get("avatar_larger") or {}).get("url_list") or [""])[0]
+    _au = (item.get("author") or {})
+    _av = _au.get("avatar_larger") or _au.get("avatar_medium") or _au.get("avatar_thumb") or {}
+    av_uri = _av.get("uri") or ""
+    av_url = re.sub(r"/\d+x\d+/", "/1080x1080/", (_av.get("url_list") or [""])[0])
     if av_uri and history.get("_avatars", {}).get(nick) != av_uri:
         stamp = datetime.now(BJ).strftime("%Y-%m-%d")
         if av_url and wd_put(f"{folder}/avatar_{stamp}.jpg", fetch(av_url, retry=1)):
@@ -306,9 +308,9 @@ def main():
     print(f"[info] This run: New {new_cnt}, Skipped {skip_cnt}, Failed {len(fails)}")
     if new_cnt or fails:
         lines = "<br>".join(f"- {f}" for f in fails[:5]) or "None"
-        push(f"[Douyin Daily] New {new_cnt}, Skipped {skip_cnt}, Failed {len(fails)}",
+        push(f"\u3010\u6296\u97f3\u65e5\u62a5\u3011 New {new_cnt}, Skipped {skip_cnt}, Failed {len(fails)}",
              f"Date:{DATE}<br>New:{new_cnt} Skipped:{skip_cnt}<br>Failure details:<br>{lines}")
     else:
-        push("[Douyin Sentinel]", f"All skipped this shift, no new items, system normal.<br>Date:{DATE}")
+        push("\u3010\u6296\u97f3\u54e8\u5175\u3011", f"All skipped this shift, no new items, system normal.<br>Date:{DATE}")
 
 main()
