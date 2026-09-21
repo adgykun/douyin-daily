@@ -106,7 +106,7 @@ def crawl():
                 cookies.append({"name": k.strip(), "value": v.strip(), "domain": ".douyin.com", "path": "/"})
         ctx.add_cookies(cookies)
         page = ctx.new_page()
-        page.on("response", on_resp)        
+        page.on("response", on_resp)
         for u in SHARE_URLS:
             page.goto(u, wait_until="domcontentloaded", timeout=60000)
             try:
@@ -150,6 +150,46 @@ def crawl():
         print(f"[diag] bodylen={len(_b)} api={api_status} items={len(collected)} cap={_cap}")
         browser.close()
 
+def author_of(item):
+    return re.sub(r"[^\w.-]+", "_", (((item.get("author") or {}).get("nickname")) or "unknown"))[:30] or "unknown"
+
+def cover_of(item):
+    cover_url = None
+    cover_ext = "jpg"
+    if item.get("video"):
+        cover_urls = ((item["video"].get("origin_cover") or item["video"].get("cover") or {}).get("url_list")) or []
+        if cover_urls:
+            cover_url = cover_urls[0]
+    images = item.get("images") or []
+    if images:
+        c_urls = images[0].get("url_list") or []
+        if c_urls:
+            cover_url = re.sub(r"~tplv-[^?]+", "~tplv-dy-aweme-original:jpeg", c_urls[-1])
+            cover_ext = guess_ext(c_urls[-1])
+    return cover_url, cover_ext
+
+def housekeep(item):
+    hid = item["aweme_id"]
+    nick = author_of(item)
+    folder = f"douyin/{nick}"
+    wd_mkdir(folder)
+    wd_mkdir(f"{folder}/\u5c01\u9762")
+    av_uri = (((item.get("author") or {}).get("avatar_larger") or {}).get("uri")) or ""
+    av_url = (((item.get("author") or {}).get("avatar_larger") or {}).get("url_list") or [""])[0]
+    if av_uri and history.get("_avatars", {}).get(nick) != av_uri:
+        stamp = datetime.now(BJ).strftime("%Y-%m-%d")
+        if av_url and wd_put(f"{folder}/avatar_{stamp}.jpg", fetch(av_url, retry=1)):
+            history.setdefault("_avatars", {})[nick] = av_uri
+    rec = history.get(hid)
+    if isinstance(rec, dict) and not rec.get("cover"):
+        cdate = datetime.fromtimestamp(int(item.get("create_time") or 0), BJ).strftime("%Y-%m-%d") if item.get("create_time") else DATE
+        safe = re.sub(r"[^\w.-]+", "_", ((item.get("desc") or "")[:40]).strip()) or "untitled"
+        cover_url, cover_ext = cover_of(item)
+        if cover_url:
+            cd = fetch(cover_url, retry=1)
+            if cd and wd_put(f"{folder}/\u5c01\u9762/{cdate}_{safe}.{cover_ext}", cd):
+                rec["cover"] = True
+
 def process(item):
     global new_cnt
     hid = item["aweme_id"]
@@ -163,38 +203,12 @@ def process(item):
     desc = (item.get("desc") or "")[:40]
     files = []
     gear_info = None
-    
-    nick = re.sub(r"[^\w.-]+", "_", (((item.get("author") or {}).get("nickname")) or "unknown"))[:30] or "unknown"
+    nick = author_of(item)
     folder = f"douyin/{nick}"
     wd_mkdir(folder)
-    
-    # Cover folder (\u5c01\u9762 = 封面)
-    cover_folder = f"{folder}/\u5c01\u9762"
-    wd_mkdir(cover_folder)
-    
-    # Avatar logic
-    av_uri = (((item.get("author") or {}).get("avatar_larger") or {}).get("uri")) or ""
-    av_url = (((item.get("author") or {}).get("avatar_larger") or {}).get("url_list") or [""])[0]
-    if av_uri and history.get("_avatars", {}).get(nick) != av_uri:
-        stamp = datetime.now(BJ).strftime("%Y-%m-%d")
-        if av_url and wd_put(f"{folder}/avatar_{stamp}.jpg", fetch(av_url, retry=1)):
-            history.setdefault("_avatars", {})[nick] = av_uri
-
-    # Fetch Cover Image
-    cover_url = None
-    cover_ext = "jpg"
-    if item.get("video"):
-        cover_urls = ((item["video"].get("origin_cover") or item["video"].get("cover") or {}).get("url_list")) or []
-        if cover_urls:
-            cover_url = cover_urls[0]
-    
+    wd_mkdir(f"{folder}/\u5c01\u9762")
     images = item.get("images") or []
     if images:
-        c_urls = images[0].get("url_list") or []
-        if c_urls:
-            cover_url = re.sub(r"~tplv-[^?]+", "~tplv-dy-aweme-original:jpeg", c_urls[-1])
-            cover_ext = guess_ext(c_urls[-1])
-
         for i, img in enumerate(images):
             urls = img.get("url_list") or img.get("download_url_list") or []
             if not urls:
@@ -243,15 +257,14 @@ def process(item):
             md = fetch(mu[0])
             if md and wd_put(f"{folder}/{aid}_music.mp3", md):
                 files.append(f"{folder}/{aid}_music.mp3")
-
-    # Save Cover
+    cover_ok = False
+    cover_url, cover_ext = cover_of(item)
     if cover_url:
-        cover_data = fetch(cover_url, retry=1)
-        if cover_data:
-            wd_put(f"{cover_folder}/{aid}.{cover_ext}", cover_data)
-                
+        cd = fetch(cover_url, retry=1)
+        if cd and wd_put(f"{folder}/\u5c01\u9762/{aid}.{cover_ext}", cd):
+            cover_ok = True
     if files:
-        history[hid] = {"date": DATE, "files": len(files), "desc": desc}
+        history[hid] = {"date": DATE, "files": len(files), "desc": desc, "cover": cover_ok}
         new_cnt += 1
         return True
     return False
@@ -271,7 +284,6 @@ def main():
     if not items and not history:
         p0("First run fetched nothing: Please check DOUYIN_URL and DOUYIN_COOKIE.")
         sys.exit(4)
-        
     done = 0
     for it in items:
         if done >= MAX_PER_RUN:
@@ -279,6 +291,7 @@ def main():
         aid = it.get("aweme_id")
         if not aid:
             continue
+        housekeep(it)
         if aid in history:
             skip_cnt += 1
             continue
@@ -289,13 +302,13 @@ def main():
         except Exception as e:
             fails.append(f"{aid} exception:{e}")
         time.sleep(random.randint(3, 8))
-        
     json.dump(history, open(HIST_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-    
     print(f"[info] This run: New {new_cnt}, Skipped {skip_cnt}, Failed {len(fails)}")
     if new_cnt or fails:
-        lines = "<br>".join(f"· {f}" for f in fails[:5]) or "None"
+        lines = "<br>".join(f"- {f}" for f in fails[:5]) or "None"
         push(f"[Douyin Daily] New {new_cnt}, Skipped {skip_cnt}, Failed {len(fails)}",
              f"Date:{DATE}<br>New:{new_cnt} Skipped:{skip_cnt}<br>Failure details:<br>{lines}")
+    else:
+        push("[Douyin Sentinel]", f"All skipped this shift, no new items, system normal.<br>Date:{DATE}")
 
 main()
