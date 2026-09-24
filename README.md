@@ -120,28 +120,25 @@
 
 #### 4. 获取博主主页链接 `DOUYIN_URL`
 
-1. 在电脑浏览器打开 [抖音网页版](https://www.douyin.com)。
-2. 搜索并进入你想要备份的博主主页。
-3. 复制浏览器顶部地址栏里的完整网址，如：
-   `https://www.douyin.com/user/MS4wLjABAAAA64tdxMeXyrQVJXAx5aE8Fk7NtU3stoQhwsqv-wP_SerqGiuQfLgeOtUhU1Tna07l`
-4. **备份多个博主**：如果有多个博主，可以用英文逗号 `,` 或换行隔开。
+1. 在电脑浏览器打开 [抖音网页版](https://www.douyin.com) 或使用手机抖音 App。
+2. 复制博主主页链接（例如 `https://www.douyin.com/user/MS4wLj...` 或短链接 `https://v.douyin.com/...`）。
+3. **极简兼容格式**：系统已自动优化链接解析！无论输入单人链接还是多人链接，无论直接粘贴手机 App 的分享文字（带“复制打开抖音…”）、或者中间包含多余空格、换行、中英文逗号（`,` 或 `，`）、分号（`;` 或 `；`），系统都会自动精准识别并提取出正确的链接。
 
 ---
 
-### 第三步：将配置参数填入 GitHub 密钥（Secrets）
+### 第三步：将配置参数填入 GitHub 密钥与变量（Secrets / Variables）
 
 1. 打开你在**第一步 Fork 到自己账号下**的 GitHub 仓库页面。
 2. 点击顶部菜单栏的 **【Settings】**（设置）。
 3. 在左侧菜单栏依次点击 **【Secrets and variables】** -> **【Actions】**。
-4. 点击右侧绿色的 **【New repository secret】** 按钮。
-5. 依次添加以下 6 个 Secret（**Name** 填大写字母名称，**Secret** 填第二步获取的值）：
-
+4. 在 **【Repository secrets】** 中，点击绿色的 **【New repository secret】** 按钮，添加敏感信息：
    - 名称: `WEBDAV_URL` | 内容: 你的网盘地址
    - 名称: `WEBDAV_USER` | 内容: 你的网盘账号
    - 名称: `WEBDAV_PASS` | 内容: 你的网盘应用密码
    - 名称: `FEISHU_WEBHOOK` | 内容: 你的飞书机器人 Webhook 链接
    - 名称: `DOUYIN_COOKIE` | 内容: 你的抖音 Cookie
-   - 名称: `DOUYIN_URL` | 内容: 博主主页链接
+5. 在 **【Repository variables】**（变量）选项卡中（也可放在 Secrets 中），点击 **【New repository variable】** 按钮添加：
+   - 名称: `DOUYIN_URL` | 内容: 博主主页链接（支持单人/多人/App分享口令）
 
 ---
 

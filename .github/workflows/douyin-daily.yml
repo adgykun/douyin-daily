@@ -34,7 +34,7 @@ jobs:
       - name: Run
         env:
           DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
-          DOUYIN_URL: ${{ secrets.DOUYIN_URL }}
+          DOUYIN_URL: ${{ vars.DOUYIN_URL || secrets.DOUYIN_URL }}
           WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
           WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
           WEBDAV_PASS: ${{ secrets.WEBDAV_PASS }}
