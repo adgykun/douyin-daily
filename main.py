@@ -19,18 +19,36 @@ from playwright.sync_api import sync_playwright  # 引入 Playwright 网页自�
 # ------------------------------------------------------------------------------
 
 # 抖音登录凭证（Cookie），脚本靠它以登录状态访问抖音
-COOKIE = os.environ["DOUYIN_COOKIE"]
+COOKIE = os.environ.get("DOUYIN_COOKIE", "")
 
-# 需要备份的抖音博主主页链接列表（支持多条，可以用逗号或换行分隔）
-SHARE_URLS = [u.split("?")[0].strip() for u in os.environ["DOUYIN_URL"].replace(",", "\n").splitlines() if u.strip()]
+def parse_douyin_urls(raw_text):
+    """
+    【解析并清洗博主主页链接】
+    支持单条/多条链接，自动从分享文字、空格或杂质字符中提取合法 HTTP/HTTPS 网址，
+    兼容逗号（中英文）、分号（中英文）、换行、空格等多种分隔符。
+    """
+    if not raw_text:
+        return []
+    # 使用正则表达式匹配出所有 http:// 或 https:// 链接
+    found = re.findall(r'https?://[^\s,\n\r，;；"\'<>（）()]+', raw_text)
+    urls = []
+    for u in found:
+        # 移除参数 query 及末尾常见的标点或符号
+        clean_u = u.split("?")[0].rstrip(".,;:;，；\"'()（）")
+        if clean_u and clean_u not in urls:
+            urls.append(clean_u)
+    return urls
+
+# 需要备份的抖音博主主页链接列表
+SHARE_URLS = parse_douyin_urls(os.environ.get("DOUYIN_URL", ""))
 
 # WebDAV 网盘存储配置（地址、账号、密码）
-WD_URL = os.environ["WEBDAV_URL"].rstrip("/")
-WD_USER = os.environ["WEBDAV_USER"]
-WD_PASS = os.environ["WEBDAV_PASS"]
+WD_URL = os.environ.get("WEBDAV_URL", "").rstrip("/")
+WD_USER = os.environ.get("WEBDAV_USER", "")
+WD_PASS = os.environ.get("WEBDAV_PASS", "")
 
 # 飞书机器人的 Webhook 地址，用于发送通知消息
-FEISHU_WEBHOOK = os.environ["FEISHU_WEBHOOK"]
+FEISHU_WEBHOOK = os.environ.get("FEISHU_WEBHOOK", "")
 
 # 每次运行最多下载多少个新作品（默认 30 个）
 MAX_PER_RUN = int(os.environ.get("MAX_PER_RUN", "30"))
@@ -202,36 +220,36 @@ def crawl():
 
         # 循环打开每一个博主的主页
         for u in SHARE_URLS:
-            page.goto(u, wait_until="domcontentloaded", timeout=60000)
             try:
-                page.wait_for_url("**/user/**", timeout=30000)
-            except Exception:
-                pass
-            time.sleep(5)
+                print(f"[crawl] Opening user URL: {u}")
+                page.goto(u, wait_until="domcontentloaded", timeout=60000)
+                try:
+                    page.wait_for_url("**/user/**", timeout=30000)
+                except Exception:
+                    pass
+                time.sleep(5)
 
-            # 找到页面真正的滚动区域（适配抖音网页版各种结构）
-            page.mouse.move(720, 700)
-            page.evaluate("""() => { let b = null; for (const e of document.querySelectorAll('*')) { if (e.scrollHeight > e.clientHeight + 100 && e.clientHeight > 200) { if (!b || e.scrollHeight > b.scrollHeight) b = e; } } window.__sc = b || document.scrollingElement; }""")
+                # 找到页面真正的滚动区域（适配抖音网页版各种结构）
+                page.mouse.move(720, 700)
+                page.evaluate("""() => { let b = null; for (const e of document.querySelectorAll('*')) { if (e.scrollHeight > e.clientHeight + 100 && e.clientHeight > 200) { if (!b || e.scrollHeight > b.scrollHeight) b = e; } } window.__sc = b || document.scrollingElement; }""")
 
-            # 循环向下滚动页面以加载更多历史作品
-            empty = 0
-            while empty < 8 and len(collected) < MAX_PER_RUN * 3:
-                before = len(collected)
-                page.evaluate("window.__sc.scrollTop = window.__sc.scrollHeight")
-                page.mouse.wheel(0, 3000)
-                page.wait_for_timeout(4000)
-                empty = 0 if len(collected) > before else empty + 1
+                # 循环向下滚动页面以加载更多历史作品
+                empty = 0
+                while empty < 8 and len(collected) < MAX_PER_RUN * 3:
+                    before = len(collected)
+                    page.evaluate("if (window.__sc) { window.__sc.scrollTop = window.__sc.scrollHeight; } else { window.scrollTo(0, document.body.scrollHeight); }")
+                    page.mouse.wheel(0, 3000)
+                    page.wait_for_timeout(4000)
+                    empty = 0 if len(collected) > before else empty + 1
+            except Exception as e:
+                print(f"[warn] Failed to open/crawl URL {u}: {e}")
 
         # 检查是否触碰到了风险控制（验证码页面）
         if ("verify" in page.url) or ("captcha" in page.url):
             p0("触发抖音验证码/风控限制，系统已自动暂停本次运行。")
             browser.close(); sys.exit(5)
 
-        try:
-            page.wait_for_url("**/user/**", timeout=30000)
-        except Exception:
-            pass
-        time.sleep(5)
+        time.sleep(2)
 
         # 检查 Cookie 是否过期（接口返回非 0 状态码）
         if api_status and all(s not in (0,) for s in api_status):
