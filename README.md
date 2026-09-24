@@ -1,124 +1,197 @@
 # 抖音博主作品自动备份与同步工具 🚀
 
-欢迎使用本工具！这是一个专为抖音设计的**自动备份与同步脚本**。即使你**完全不懂代码**，也可以通过这篇教程轻松学会如何使用它。
+欢迎使用本工具！这是一个专为抖音设计的**全自动作品备份与网盘同步脚本**。
+
+哪怕你**以前没有任何代码编写或部署经验**，只要按照本教程**一步一步点击**，就能在 10 分钟内完成全自动部署！
 
 ---
 
-## 💡 用大白话告诉你：这个脚本是怎么运行的？
+## 💡 用大白话告诉你：这个脚本是怎么工作的？
 
-你可以把这个脚本想象成一个**24小时不休息的“数字搬运工”**。它的工作流程非常简单直观：
+您可以把这个脚本想象成一个**24小时不休息的“数字搬运工”**：
 
-1. **自动打开抖音（模拟真人浏览）**
-   脚本会在后台启动一个“隐形浏览器”（Playwright），就像你平时在电脑上打开网页一样，自动进入你指定的抖音博主主页。
-
-2. **自动刷视频（滚动页面）**
-   它会像你刷抖音一样，自动往下滑动页面，让博主最新发布的作品不断加载出来。
-
-3. **捕获高清数据（智能提取）**
-   在页面加载的同时，脚本会在后台悄悄拦截抖音的数据接口，从中挑选出最高画质的视频（最高支持尝试获取 1080P 超高清）或者高清无水印原图图集。如果是动图（Live Photo），它也会自动保存动图视频。
-
-4. **上传到你的网盘（WebDAV 存储）**
-   下载好视频、图片、封面和博主头像后，脚本会按照“抖音/博主名字/作品”的目录结构，把文件安全地上传到你的个人网盘（如坚果云、Alist、NAS 等 WebDAV 网盘）。
-
-5. **记录历史，绝不重复下载**
-   脚本每次成功保存作品后，都会在一个叫做 `history.json` 的小本本上做记号。下次再运行时，已经下载过的作品就会自动跳过，既省时又省流量。
-
-6. **飞书机器人汇报**
-   工作完成后，它会在飞书群里给你发一条消息，告诉你今天新增备份了几个作品、跳过了几个作品，让你一目了然！
+1. **自动打开抖音**：脚本会在云端后台启动一个“隐形浏览器”，自动进入你设定的抖音博主主页。
+2. **自动获取高清作品**：自动抓取博主最新发布的超高清视频（支持 1080P）、高清图片图集以及实况动图（Live Photo）。
+3. **上传到你的网盘**：自动将文件上传到你的个人网盘（如坚果云、Alist、NAS 等），按“抖音/博主名字/作品名称”排得整整齐齐。
+4. **记住历史不重复**：下载过的作品会被自动记录，下次运行时自动跳过，绝不重复下载。
+5. **飞书机器人汇报**：每次运行完毕，飞书机器人会在群里给你发一条中文报告，告诉你今天备份了多少个作品！
 
 ---
 
-## 🔗 博主主页 URL 示例配置
+## 📋 部署全流程一览
 
-在配置变量 `DOUYIN_URL` 时，你可以填入你想备份的博主主页链接（支持配置多个，可以用逗号或换行隔开）。
-
-以下是原本项目中配置的博主主页示例链接：
+整个部署过程只需要以下 4 个大步骤：
 
 ```text
-https://www.douyin.com/user/MS4wLjABAAAA64tdxMeXyrQVJXAx5aE8Fk7NtU3stoQhwsqv-wP_SerqGiuQfLgeOtUhU1Tna07l
-https://www.douyin.com/user/MS4wLjABAAAAkj57HrJK_90RfPHSJ0SxoBcJHqiM9ivTdCSXTDmP38_OZUGQjqDl4xIh2uaJpu5f
-https://www.douyin.com/user/MS4wLjABAAAA2UKy3mj6WwWGjPIn-XBv9CEWDGFbJwU5vpS9VuyvBEk
+【步骤 1：项目入库】 -> 【步骤 2：获取参数】 -> 【步骤 3：填入密钥】 -> 【步骤 4：运行验证】
+ (把代码复制到你账号)    (坚果云/飞书/抖音Cookie)    (设置 GitHub Secrets)      (点击运行&查看结果)
 ```
 
-> **如何获取博主主页链接？**
-> 打开电脑版抖音网页（https://www.douyin.com ），搜索并进入你喜欢的博主主页，复制浏览器地址栏里的网址即可！
+---
+
+## 🚀 小白零基础部署教程
+
+### 第一步：项目入库（把代码复制到你自己的 GitHub）
+
+1. **注册/登录 GitHub**：打开 [GitHub 官网](https://github.com) 并登录账号（如果没有账号，先点击右上角 Sign up 注册一个）。
+2. **打开本项目页面**：确保你在当前项目的 GitHub 页面。
+3. **点击 Fork 按钮**：
+   - 在页面右上角找到 **【Fork】** 按钮（图标像一个小叉子）。
+   - 点击 **【Fork】**，然后在弹出的页面中直接点击绿色的 **【Create fork】** 按钮。
+4. **入库完成**：稍等几秒后，页面会跳转到你个人账号下的项目仓库。此时，你已经成功将本项目“搬”到了你自己的账号下！
 
 ---
 
-## 🛠️ 详细使用指南
+### 第二步：获取 6 个必要配置参数
 
-下面为你一步步讲解如何配置并运行这个项目。
+在让脚本运行前，你需要准备好以下 6 个参数：
 
-### 第一步：准备必要信息
-
-在运行脚本前，你需要准备好以下 5 种参数（环境变量）：
-
-| 环境变量名称 | 说明 | 示例 |
+| 参数名称 | 说明 | 示例 |
 | :--- | :--- | :--- |
-| `DOUYIN_COOKIE` | 抖音账号登录凭证（获取方法见下文） | `passport_csrf_token=...; sessionid=...` |
-| `DOUYIN_URL` | 目标博主的主页链接（多个用逗号或换行分隔） | 上文提到的示例链接 |
-| `WEBDAV_URL` | 你的 WebDAV 网盘服务器地址 | `https://dav.jianguoyun.com/dav` |
-| `WEBDAV_USER` | WebDAV 网盘账号 | `your_email@example.com` |
-| `WEBDAV_PASS` | WebDAV 网盘密码/应用密码 | `your_webdav_password` |
-| `FEISHU_WEBHOOK` | 飞书自定义机器人的 Webhook 链接 | `https://open.feishu.cn/open-apis/bot/v2/hook/...` |
-| `MAX_PER_RUN` | （可选）单次运行最多下载的新作品数，默认 `30` | `30` |
+| `WEBDAV_URL` | 你的网盘 WebDAV 服务器地址 | `https://dav.jianguoyun.com/dav` |
+| `WEBDAV_USER` | 你的网盘账号（邮箱/用户名） | `your_email@example.com` |
+| `WEBDAV_PASS` | 你的网盘 WebDAV 应用密码 | `xxxxxx` |
+| `FEISHU_WEBHOOK` | 飞书机器人的通知链接 | `https://open.feishu.cn/open-apis/bot/v2/hook/...` |
+| `DOUYIN_COOKIE` | 抖音网页版登录凭证 | `passport_csrf_token=...; sessionid=...` |
+| `DOUYIN_URL` | 想备份的博主主页链接 | `https://www.douyin.com/user/MS4wLj...` |
+
+下面为你详细讲解每一个参数如何获取：
 
 ---
 
-### 💡 如何获取抖音 `DOUYIN_COOKIE`？
+#### 1. 获取网盘参数（以【坚果云】为例）
 
-1. 用电脑浏览器（建议 Chrome 或 Edge）打开 [抖音网页版](https://www.douyin.com) 并登录你的账号。
-2. 按键盘上的 `F12` 键（或者右键点击网页选择“检查”），打开开发者工具。
-3. 点击顶部的 **“网络” (Network)** 选项卡。
-4. 刷新一下抖音页面（按 `F5`），然后在网络请求列表中找到任意一个以 `www.douyin.com` 开头的请求。
-5. 点击该请求，在右侧的 **“标头” (Headers)** -> **“请求标头” (Request Headers)** 里找到 `Cookie`。
-6. 复制 `Cookie:` 后面的全部文本，这就是你的 `DOUYIN_COOKIE`。
+> *如果你使用的是 Alist 或 NAS，请直接使用你自己的 WebDAV 地址和账号密码。*
+
+1. 注册并登录 [坚果云官网](https://www.jianguoyun.com)。
+2. 点击右上角的**账号头像/昵称** -> 选择 **【账户信息】**。
+3. 点击 **【安全选项】** 选项卡。
+4. 找到 **【第三方应用管理】**，点击 **【添加应用】**，应用名称填 `抖音备份`，点击完成。
+5. 此时页面会显示生成的**应用密码**：
+   - `WEBDAV_URL` 固定填：`https://dav.jianguoyun.com/dav`
+   - `WEBDAV_USER` 填你的坚果云注册邮箱。
+   - `WEBDAV_PASS` 填刚才生成的应用密码（注意：不是坚果云的登录密码）。
 
 ---
 
-### 第二步：运行项目
+#### 2. 获取飞书机器人 `FEISHU_WEBHOOK`
 
-本项目支持在**本地电脑**或者 **GitHub Actions（定时自动运行）** 中执行。
+1. 打开电脑端**飞书**软件。
+2. 在左侧点击 `+` 号新建一个群聊（或者随便进入一个你自己创建的群聊）。
+3. 点击群聊右上角的 **【...】（更多）** -> **【群设置】** -> **【群机器人】**。
+4. 点击 **【添加机器人】** -> 选择 **【自定义机器人】**。
+5. 机器人名称填 `抖音备份助手`，点击 **【添加】**。
+6. 复制页面上显示的 **Webhook 地址**（这就是 `FEISHU_WEBHOOK`），点击完成。
 
-#### 方式 A：在本地电脑运行
+---
 
-1. **安装 Python 3.8+** 和 **ffmpeg**（用于画质检测）。
-2. **安装依赖包**：
+#### 3. 获取抖音 `DOUYIN_COOKIE`（超详细）
+
+1. 用电脑浏览器（推荐使用 Chrome 或 Edge）打开 [抖音网页版](https://www.douyin.com) 并登录你的抖音账号。
+2. 按键盘上的 **`F12`** 键（Mac 电脑按 `Cmd + Option + I`），打开浏览器的开发者工具。
+3. 在弹出的窗口顶部，点击 **【网络】(Network)** 选项卡。
+4. 按键盘 **`F5`** 键刷新一下抖音网页。
+5. 在下方出现的请求列表中，向上滚动找到任意一个域名为 `www.douyin.com` 的请求。
+6. 点击该请求，在右侧面板选择 **【标头】(Headers)**。
+7. 在 **【请求标头】(Request Headers)** 列表中找到 **`Cookie:`**。
+8. 鼠标选中并复制 `Cookie:` 后面的**全部长字符串**，这就是你的 `DOUYIN_COOKIE`。
+
+---
+
+#### 4. 获取博主主页链接 `DOUYIN_URL`
+
+1. 在电脑浏览器打开 [抖音网页版](https://www.douyin.com)。
+2. 搜索并进入你想要备份的博主主页。
+3. 复制浏览器顶部地址栏里的完整网址，如：
+   `https://www.douyin.com/user/MS4wLjABAAAA64tdxMeXyrQVJXAx5aE8Fk7NtU3stoQhwsqv-wP_SerqGiuQfLgeOtUhU1Tna07l`
+4. **备份多个博主**：如果有多个博主，可以用英文逗号 `,` 或换行隔开。
+
+---
+
+### 第三步：将配置参数填入 GitHub 密钥（Secrets）
+
+1. 打开你在**第一步 Fork 到自己账号下**的 GitHub 仓库页面。
+2. 点击顶部菜单栏的 **【Settings】**（设置）。
+3. 在左侧菜单栏依次点击 **【Secrets and variables】** -> **【Actions】**。
+4. 点击右侧绿色的 **【New repository secret】** 按钮。
+5. 依次添加以下 6 个 Secret（**Name** 填大写字母名称，**Secret** 填第二步获取的值）：
+
+   - 名称: `WEBDAV_URL` | 内容: 你的网盘地址
+   - 名称: `WEBDAV_USER` | 内容: 你的网盘账号
+   - 名称: `WEBDAV_PASS` | 内容: 你的网盘应用密码
+   - 名称: `FEISHU_WEBHOOK` | 内容: 你的飞书机器人 Webhook 链接
+   - 名称: `DOUYIN_COOKIE` | 内容: 你的抖音 Cookie
+   - 名称: `DOUYIN_URL` | 内容: 博主主页链接
+
+---
+
+### 第四步：手动运行测试与开启自动定时备份
+
+1. 在你的 GitHub 仓库顶部，点击 **【Actions】** 选项卡。
+2. **启用工作流**：如果页面提示 *"Workflows aren't running on this forked repository"*，请点击绿色的 **"I understand my workflows, go ahead and enable them"** 按钮。
+3. 在左侧列表中点击 **`douyin-daily`** 工作流。
+4. 点击右侧的 **【Run workflow】** 按钮，再点击绿色的 **【Run workflow】** 开始运行。
+5. 稍等 1~3 分钟，刷新页面后看到出现绿色对勾 **`✔`**，说明运行成功！
+6. **检查成果**：
+   - 你的飞书群会收到一条包含运行信息的**中文通知报告**。
+   - 打开你的坚果云/网盘，会看到自动创建了 `douyin/博主昵称/` 目录，视频、图集、封面和头像都已经安全存入！
+7. **定时自动备份**：脚本会自动在每天**北京时间 08:00、12:00、20:00** 自动触发运行，你无需再做任何操作！
+
+---
+
+## 💻 本地电脑运行教程（可选）
+
+如果你想在自己的电脑（Windows / Mac / Linux）上直接运行：
+
+1. **安装 Python 3.8+** 与 **ffmpeg**。
+2. **下载项目代码**：
+   ```bash
+   git clone https://github.com/你的用户名/douyin-backup.git
+   cd douyin-backup
+   ```
+3. **安装依赖环境**：
    ```bash
    pip install -r requirements.txt
    playwright install chromium
    ```
-3. **设置环境变量**（以 Linux / macOS 为例）：
+4. **设置环境变量**（以 Linux / macOS 为例）：
    ```bash
    export DOUYIN_COOKIE="你的Cookie"
-   export DOUYIN_URL="https://www.douyin.com/user/MS4wLjABAAAA64tdxMeXyrQVJXAx5aE8Fk7NtU3stoQhwsqv-wP_SerqGiuQfLgeOtUhU1Tna07l"
-   export WEBDAV_URL="你的WebDAV地址"
-   export WEBDAV_USER="你的WebDAV账号"
-   export WEBDAV_PASS="你的WebDAV密码"
-   export FEISHU_WEBHOOK="你的飞书Webhook"
+   export DOUYIN_URL="博主主页链接"
+   export WEBDAV_URL="网盘地址"
+   export WEBDAV_USER="网盘账号"
+   export WEBDAV_PASS="网盘密码"
+   export FEISHU_WEBHOOK="飞书Webhook"
    export MAX_PER_RUN="30"
    ```
-4. **运行脚本**：
+5. **执行运行**：
    ```bash
    python main.py
    ```
 
-#### 方式 B：使用 GitHub Actions 云端定时自动运行（推荐 🌟）
-
-1. 将本项目代码 Fork 或推送到你的 GitHub 仓库。
-2. 打开仓库设置：`Settings` -> `Secrets and variables` -> `Actions`。
-3. 点击 **New repository secret**，依次添加上述环境变量（`DOUYIN_COOKIE`, `DOUYIN_URL`, `WEBDAV_URL`, `WEBDAV_USER`, `WEBDAV_PASS`, `FEISHU_WEBHOOK`）。
-4. 在 GitHub Actions 中开启定时任务，脚本就会每天定时自动帮你备份博主的更新！
-
 ---
 
-## ❓ 常见问题与提示
+## ❓ 常见问题与解答 (FAQ)
 
-* **收到飞书提醒“Cookie suspected invalid”？**
-  说明你的抖音 Cookie 已经失效或者过期了，重新按照教程获取最新的 Cookie 并更新环境变量即可。
-* **收到飞书提醒“Triggered Douyin captcha risk control”？**
-  说明触发了抖音的验证码或风控机制，系统会自动暂停本次下载，防止账号受影响。稍等一段时间后再试即可。
-* **保存的文件在哪？**
-  文件会自动储存在你的 WebDAV 网盘中，路径结构为：`douyin/博主昵称/作品文件名.mp4` 和 `douyin/博主昵称/封面/`。
+### 1. 收到飞书提醒“抖音 Cookie 疑似失效”怎么办？
+* **原因**：抖音网页版的 Cookie 会定期过期。
+* **解决方法**：按照【第二步 - 第3点】重新在浏览器获取一次最新的 Cookie，然后打开 GitHub 仓库的 `Settings` -> `Secrets and variables` -> `Actions`，找到 `DOUYIN_COOKIE` 点击编辑并替换为新值即可。
+
+### 2. 收到飞书提醒“触发抖音验证码/风控限制”怎么办？
+* **原因**：抖音防刷机制拦截了本次访问。
+* **解决方法**：脚本会自动暂停本次保存以保护账号安全。你不需要做任何处理，等待下一次定时任务自动重试即可。
+
+### 3. 可以在网盘里看到什么样的目录结构？
+文件会自动保存在网盘根目录的 `douyin/` 文件夹下，例如：
+```text
+douyin/
+└── 博主昵称/
+    ├── avatar_2025-01-01.jpg       (博主最新高清头像)
+    ├── 2025-01-01_作品标题_video.mp4 (超高清视频)
+    ├── 2025-01-01_图集标题_img0.jpg  (高清原图)
+    ├── 2025-01-01_动图标题_img0_live.mp4 (Live Photo 动图视频)
+    └── 封面/
+        └── 2025-01-01_作品标题.jpg (作品高清封面)
+```
 
 ---
