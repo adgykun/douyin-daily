@@ -92,7 +92,7 @@ def p0(msg):
     【发送紧急报警通知（P0级别）】
     当遇到 Cookie 失效、触发验证码等严重问题时触发。
     """
-    push("【抖音P0】 " + msg[:60], f"<b>{msg}</b><br>Date:{DATE}<br>System paused new saves.")
+    push("【抖音报警】 " + msg[:60], f"<b>{msg}</b><br>日期：{DATE}<br>系统已暂停本次保存任务。")
 
 def wd(path):
     """【拼接 WebDAV 网盘完整文件路径】"""
@@ -224,7 +224,7 @@ def crawl():
 
         # 检查是否触碰到了风险控制（验证码页面）
         if ("verify" in page.url) or ("captcha" in page.url):
-            p0("Triggered Douyin captcha risk control: Pausing this run.")
+            p0("触发抖音验证码/风控限制，系统已自动暂停本次运行。")
             browser.close(); sys.exit(5)
 
         try:
@@ -235,14 +235,14 @@ def crawl():
 
         # 检查 Cookie 是否过期（接口返回非 0 状态码）
         if api_status and all(s not in (0,) for s in api_status):
-            p0(f"Cookie suspected invalid (API status_code={api_status[0]}), please update DOUYIN_COOKIE.")
+            p0(f"抖音 Cookie 疑似失效（接口状态码={api_status[0]}），请更新 DOUYIN_COOKIE 环境变量。")
             browser.close(); sys.exit(2)
 
         # 检查是否被弹出了强制登录框
         if not collected:
             body = page.content()
             if "passport" in page.url or ("登录" in body and len(body) < 50000):
-                p0("Cookie suspected invalid (login wall popped up), please update DOUYIN_COOKIE.")
+                p0("抖音 Cookie 疑似失效（页面弹出了登录拦截），请更新 DOUYIN_COOKIE 环境变量。")
                 browser.close(); sys.exit(2)
 
         # 补充滚动几轮确保拿到最新数据
@@ -366,18 +366,18 @@ def process(item):
                     files.append(f"{folder}/{aid}_img{i}_live.mp4")
                     live_ok = True
                 else:
-                    fails.append(f"{aid} img{i} live failed")
+                    fails.append(f"{aid} 图{i} 动图/LivePhoto保存失败")
 
             # 如果不是动图，下载原图
             if not live_ok:
                 data = fetch(re.sub(r"~tplv-[^?]+", "~tplv-dy-aweme-original:jpeg", urls[-1]), retry=1) or fetch(urls[-1])
                 if data is None:
-                    fails.append(f"{aid} img{i} download failed"); continue
+                    fails.append(f"{aid} 图{i} 原图下载失败"); continue
                 path = f"{folder}/{aid}_img{i}.{guess_ext(urls[-1])}"
                 if wd_put(path, data):
                     files.append(path)
                 else:
-                    fails.append(f"{aid} img{i} upload failed")
+                    fails.append(f"{aid} 图{i} 网盘上传失败")
     else:
         # ---------------- 视频作品处理 ----------------
         video = item.get("video") or {}
@@ -404,11 +404,11 @@ def process(item):
             t = try1080(video, gear_info, fetch)
             vd, gear_info = t[0] or fetch(url), t[1]
             if vd is None:
-                fails.append(f"{aid} video download failed")
+                fails.append(f"{aid} 视频下载失败")
             elif wd_put(f"{folder}/{aid}_video.mp4", vd):
                 files.append(f"{folder}/{aid}_video.mp4")
             else:
-                fails.append(f"{aid} video upload failed")
+                fails.append(f"{aid} 视频网盘上传失败")
 
         # 音乐背景音轨处理（留空可选扩展）
         mu = ((item.get("music") or {}).get("play_url") or {}).get("url_list") or []
@@ -453,10 +453,10 @@ def main():
 
     # 异常防御：如果抓取结果为空且有历史记录，说明可能触发风控或主页异常
     if not items and history:
-        p0("Abnormal empty list: Fetched nothing but history has records. Risk control or profile change.")
+        p0("抓取作品列表为空：未获取到任何作品，但本地已有历史记录。可能触发了抖音风控或博主主页结构变化。")
         sys.exit(3)
     if not items and not history:
-        p0("First run fetched nothing: Please check DOUYIN_URL and DOUYIN_COOKIE.")
+        p0("首次运行未获取到任何作品：请检查 DOUYIN_URL 与 DOUYIN_COOKIE 配置是否正确。")
         sys.exit(4)
 
     # 2. 遍历抓取到的作品列表，逐个对比历史记录并下载
@@ -481,7 +481,7 @@ def main():
                 done += 1
                 print(f"[ok] {aid} saved")
         except Exception as e:
-            fails.append(f"{aid} exception:{e}")
+            fails.append(f"{aid} 处理异常：{e}")
 
         # 随机暂停 3~8 秒，避免下载过快被抖音服务器封禁
         time.sleep(random.randint(3, 8))
@@ -492,11 +492,11 @@ def main():
 
     # 4. 根据运行结果发送飞书通知
     if new_cnt or fails:
-        lines = "<br>".join(f"- {f}" for f in fails[:5]) or "None"
-        push(f"【抖音日报】 New {new_cnt}, Skipped {skip_cnt}, Failed {len(fails)}",
-             f"Date:{DATE}<br>New:{new_cnt} Skipped:{skip_cnt}<br>Failure details:<br>{lines}")
+        lines = "<br>".join(f"- {f}" for f in fails[:5]) or "无"
+        push(f"【抖音备份日报】 新增 {new_cnt} 个，跳过 {skip_cnt} 个，失败 {len(fails)} 个",
+             f"运行日期：{DATE}<br>新增备份：{new_cnt} 个<br>跳过重复：{skip_cnt} 个<br>失败明细：<br>{lines}")
     else:
-        push("【抖音哨兵】", f"All skipped this shift, no new items, system normal.<br>Date:{DATE}")
+        push("【抖音备份日报】", f"本次运行未发现新发布的作品，所有作品均已备份或跳过，系统运行正常。<br>运行日期：{DATE}")
 
 if __name__ == "__main__":
     main()
