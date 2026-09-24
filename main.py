@@ -112,242 +112,277 @@ def p0(msg, detail="", err_type="UNKNOWN"):
     提供故障时间、错误归类、根因诊断与逐步排查修复指引。
     """
     now_str = datetime.now(BJ).strftime("%Y-%m-%d %H:%M:%S")
-    title = f"🚨【抖音特工急报】{msg}"
+    title = f"🚨【抖音特工急报】{msg} 🚨"
     content = (
-        f"⏰ 发生时间：{now_str}<br>"
-        f"🏷 故障类型：{err_type}<br>"
-        f"🔍 根因诊断：<br>{detail.replace(chr(10), '<br>')}<br><br>"
-        f"🛠 逐步排查与修复建议：<br>"
-        f"1. 登录 GitHub 仓库进入 Settings -> Secrets and variables -> Actions<br>"
-        f"2. 检查并更新对应的 DOUYIN_COOKIE 或 DOUYIN_URL 密钥与变量<br>"
-        f"3. 确认抖音网页版（douyin.com）账号登录状态正常且无验证码弹窗<br>"
-        f"4. 重新点击 Actions -> Run workflow 手动验证运行结果<br><br>"
-        f"⚡️ 别慌！系统已为你自动熔断暂停本次保存，保护账号不被封禁~"
+        f"⏰ <b>发生时间：</b>{now_str}<br>"
+        f"🏷️ <b>故障类型：</b>{err_type}<br>"
+        f"🔍 <b>根因诊断：</b><br>{detail.replace(chr(10), '<br>')}<br><br>"
+        f"🛠️ <b>逐步排查与修复建议：</b><br>"
+        f"  1. 🔑 登录 GitHub 仓库进入 Settings -> Secrets and variables -> Actions<br>"
+        f"  2. 📝 检查并更新对应的 DOUYIN_COOKIE 或 DOUYIN_URL 密钥与变量<br>"
+        f"  3. 🌐 确认抖音网页版（douyin.com）账号登录状态正常且无验证码弹窗<br>"
+        f"  4. 🚀 重新点击 Actions -> Run workflow 手动验证运行结果<br><br>"
+        f"⚡️ <b>别慌！</b>系统已为你自动熔断暂停本次保存，保护账号不被封禁~ 🛡️"
     )
     push(title, content)
 
 # ------------------------------------------------------------------------------
-# 一周 21 轮（7天 × 每天3轮）完全不重复的酷炫小调皮风格日报生成器
+# 10 套充满丰富 Emoji 表情与热情的随机飞书通知模板
 # ------------------------------------------------------------------------------
 
-REPORT_PERSONAS = [
-    # Index 0: 周一 早班 (08:17)
+NOTIFICATION_TEMPLATES = [
+    # 模板 1
     {
-        "title": "⚡️【特工小哥·周一早八能量加满】",
-        "intro": "嘀！周一特工小哥打卡！开启本周第一波硬核巡逻~ ☕️",
-        "active": "爽快！一大早就抓到了 {new_cnt} 个热乎乎的新作品！统统无压送入网盘金库！📦🚀",
-        "silent": "巡逻完毕~ 博主们大概还没从周末梦里醒过来，今天没更新哦，网盘安然无事！😴",
-        "closing": "退下继续监视去啦，加油打工人！💪"
+        "title": "🤖【抖音云端特工巡逻战报】",
+        "intro": "⚡ 报告长官！巡逻特工已完成新一轮抖音博主搜捕任务，成果丰硕！",
+        "author_fmt": (
+            "👤 <b>博主昵称：</b>{nick}<br>"
+            "  • 🔍 抓取作品总数：<b>{total_fetched}</b> 个<br>"
+            "  • 📦 抓取成功类型：<b>{types_str}</b><br>"
+            "  • ⏭️ 跳过重复作品：<b>{skip_cnt}</b> 个<br>"
+            "  • ⚠️ 抓取失败作品：<b>{fail_cnt}</b> 个"
+        ),
+        "summary_fmt": (
+            "📊 <b>【全局战况汇总】</b><br>"
+            "  • 🟢 一共抓取成功：<b>{total_success}</b> 个作品<br>"
+            "  • ⏭️ 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
+            "  • ❌ 一共抓取失败：<b>{total_failed}</b> 个作品"
+        ),
+        "closing": "🫡 特工小队归位，随时待命迎接下一轮巡逻！✨"
     },
-    # Index 1: 周一 午班 (12:23)
+    # 模板 2
     {
-        "title": "🍱【打工人续航站·周一午间巡检】",
-        "intro": "一边干饭一边巡逻！周一中午的抖音捕手上线咯 🍗",
-        "active": "干饭途中战果丰硕！拦截到 {new_cnt} 个新发作品，已打包码齐，请查收！🍣",
-        "silent": "吃饱喝足，网盘里也是满满当当~ 本轮未发现新增作品，小弟继续打瞌睡~ 💤",
-        "closing": "吃饱喝足准备午休，下午继续干！🍉"
+        "title": "🚀【星际航行·采风号搜捕日志】",
+        "intro": "🛸 哔哔！星际采风号飞船穿梭抖音星系，为您带来最新观测报告：",
+        "author_fmt": (
+            "🪐 <b>目标博主：</b>{nick}<br>"
+            "  • 📡 探测作品总数：<b>{total_fetched}</b> 个<br>"
+            "  • 💎 成功捕获类型：<b>{types_str}</b><br>"
+            "  • 🌀 避开重复轨道：<b>{skip_cnt}</b> 个<br>"
+            "  • 💥 异常丢包作品：<b>{fail_cnt}</b> 个"
+        ),
+        "summary_fmt": (
+            "🌌 <b>【星系采风总结算】</b><br>"
+            "  • 🌟 一共抓取成功：<b>{total_success}</b> 个作品<br>"
+            "  • 🌀 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
+            "  • ☄️ 一共抓取失败：<b>{total_failed}</b> 个作品"
+        ),
+        "closing": "🛰️ 采风号进入蓄能状态，下一站准时启航！💫"
     },
-    # Index 2: 周一 晚班 (20:37)
+    # 模板 3
     {
-        "title": "🌙【夜行者电波·周一打卡下班】",
-        "intro": "周一终于熬过头啦！夜行者特工为你带来今夜最后一波战报 🌃",
-        "active": "夜幕降临，收获满满！把博主刚烤好的 {new_cnt} 个作品一股脑运回家啦 🍢",
-        "silent": "今夜无风无浪，博主今晚静悄悄，小弟也去充充电咯，晚安！💤",
-        "closing": "关机洗洗睡，明天又是新的一天~ ✨"
+        "title": "👾【赛博朋克·数据矩阵抓取报告】",
+        "intro": "💻 [SYSTEM OK] 抖音节点数据爬取与解密已完成，数据链路接入成功：",
+        "author_fmt": (
+            "🤖 <b>节点博主：</b>{nick}<br>"
+            "  • 🔌 拦截数据包：<b>{total_fetched}</b> 个<br>"
+            "  • 💾 解密成功类型：<b>{types_str}</b><br>"
+            "  • 🔒 缓存命中跳过：<b>{skip_cnt}</b> 个<br>"
+            "  • ❌ 校验失败作品：<b>{fail_cnt}</b> 个"
+        ),
+        "summary_fmt": (
+            "🖥️ <b>【矩阵总结算】</b><br>"
+            "  • ⚡️ 一共抓取成功：<b>{total_success}</b> 个作品<br>"
+            "  • 🛡️ 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
+            "  • ⚠️ 一共抓取失败：<b>{total_failed}</b> 个作品"
+        ),
+        "closing": "🔌 节点断开，系统已切入休眠节电模式... 🤖"
     },
-    # Index 3: 周二 早班
+    # 模板 4
     {
-        "title": "🚀【星际航行·周二晨间引擎全开】",
-        "intro": "哔哔！周二晨间巡航号已经升空，传感器全开！🛸",
-        "active": "在抖音星系捕获到 {new_cnt} 颗高能新星作品！已成功降落到 WebDAV 基地！🌌",
-        "silent": "星系一片祥和，未发现新星轨迹，基地仓储完好无损~ 📡",
-        "closing": "巡航号保持轨道飞行中，随时待命！💫"
+        "title": "🍕【特工美食快送·新鲜作品派送单】",
+        "intro": "🍱 叮咚！您关注的博主最新作品“热乎套餐”已全速送达，请签收：",
+        "author_fmt": (
+            "👨‍🍳 <b>主厨博主：</b>{nick}<br>"
+            "  • 📜 本期出菜作品：<b>{total_fetched}</b> 道<br>"
+            "  • 🍲 成功上桌类型：<b>{types_str}</b><br>"
+            "  • 🍱 之前尝过跳过：<b>{skip_cnt}</b> 道<br>"
+            "  • 🍳 上菜失败数量：<b>{fail_cnt}</b> 道"
+        ),
+        "summary_fmt": (
+            "🥤 <b>【外卖总账单】</b><br>"
+            "  • 😋 一共抓取成功：<b>{total_success}</b> 个作品<br>"
+            "  • 🥡 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
+            "  • 🥣 一共抓取失败：<b>{total_failed}</b> 个作品"
+        ),
+        "closing": "🍩 祝您用餐愉快，小哥先去吃零食啦~ 🍧"
     },
-    # Index 4: 周二 午班
+    # 模板 5
     {
-        "title": "🍉【吃瓜群众·周二午后前线】",
-        "intro": "搬个小板凳！周二午后吃瓜巡逻队准时报道 🍉",
-        "active": "小板凳没白搬！捕获 {new_cnt} 个爆款新动态，这就奉上大片！🍿",
-        "silent": "吃瓜小分队环顾四周，博主今日按兵不动，瓜架十分安全~ 🍉",
-        "closing": "撤走小板凳，去准备下午茶啦~ 🍰"
+        "title": "🏎️【极速飞车·博主动态快讯】",
+        "intro": "🏎️💨 轰隆隆！极速搬运车队以 200km/h 的速度冲过终点线，战果大公开：",
+        "author_fmt": (
+            "🏁 <b>赛道博主：</b>{nick}<br>"
+            "  • 🚩 发现动态作品：<b>{total_fetched}</b> 个<br>"
+            "  • 🏆 极速冲线类型：<b>{types_str}</b><br>"
+            "  • ⛽ 弯道避让重复：<b>{skip_cnt}</b> 个<br>"
+            "  • 🛑 抛锚失败作品：<b>{fail_cnt}</b> 个"
+        ),
+        "summary_fmt": (
+            "🥇 <b>【车队总成绩】</b><br>"
+            "  • 🎉 一共抓取成功：<b>{total_success}</b> 个作品<br>"
+            "  • 🏎️ 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
+            "  • 🔧 一共抓取失败：<b>{total_failed}</b> 个作品"
+        ),
+        "closing": "🏆 奖杯已收入囊中，车队回库保养等下一场！🏁"
     },
-    # Index 5: 周二 晚班
+    # 模板 6
     {
-        "title": "🏎️【极速飞车·周二夜间冲刺】",
-        "intro": "漂移过弯！周二夜间极速搬运车队组团刷屏 🏎️💨",
-        "active": "一脚油门下去，直接运回 {new_cnt} 个极品音画！这速度就问你酷不酷 😎",
-        "silent": "赛道畅通无阻，博主今晚休息，车队回库保养咯 🏁",
-        "closing": "尾灯闪烁，特工车队优雅归巢~ 🏆"
+        "title": "🏆【数字搬运金牌特工·巡检简报】",
+        "intro": "💼 尊敬的主人，您的专属金牌数字搬运官为您呈上最新的巡检与备份报告：",
+        "author_fmt": (
+            "🌟 <b>创作者：</b>{nick}<br>"
+            "  • 🔍 检索到作品：<b>{total_fetched}</b> 个<br>"
+            "  • 📦 归档成功类型：<b>{types_str}</b><br>"
+            "  • 📁 已有存档跳过：<b>{skip_cnt}</b> 个<br>"
+            "  • ⚠️ 归档失败作品：<b>{fail_cnt}</b> 个"
+        ),
+        "summary_fmt": (
+            "📈 <b>【网盘金库汇总】</b><br>"
+            "  • ✅ 一共抓取成功：<b>{total_success}</b> 个作品<br>"
+            "  • 📁 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
+            "  • 🚨 一共抓取失败：<b>{total_failed}</b> 个作品"
+        ),
+        "closing": "🎩 随时待命为您服务，愿您今天心情舒畅！💖"
     },
-    # Index 6: 周三 早班
+    # 模板 7
     {
-        "title": "🐫【周三驼峰日·黎明破晓行动】",
-        "intro": "一周过半啦！周三驼峰行动小队闪亮登场 🐫⚡️",
-        "active": "成功翻越周三山峰！顺便掏空博主主页，扛回 {new_cnt} 个硬货！🏋️",
-        "silent": "驼峰山上风平浪静，没有发现新作品的痕迹，轻松过关！🏔️",
-        "closing": "坚持住！周末已经在向我们招手啦~ 👋"
+        "title": "🏖️【海滩冲浪小分队·作品搜捕日报】",
+        "intro": "🏄‍♂️ 踏浪而来！冲浪特工在抖音大潮中抓到了不少新鲜货，速来看：",
+        "author_fmt": (
+            "🌴 <b>冲浪博主：</b>{nick}<br>"
+            "  • 🌊 巨浪卷入作品：<b>{total_fetched}</b> 个<br>"
+            "  • 🏄 抱回岸上类型：<b>{types_str}</b><br>"
+            "  • 🐚 沙滩旧贝跳过：<b>{skip_cnt}</b> 个<br>"
+            "  • 🦈 意外脱钩失败：<b>{fail_cnt}</b> 个"
+        ),
+        "summary_fmt": (
+            "🏖️ <b>【海滩收货总计】</b><br>"
+            "  • 🟢 一共抓取成功：<b>{total_success}</b> 个作品<br>"
+            "  • 🐚 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
+            "  • 🌊 一共抓取失败：<b>{total_failed}</b> 个作品"
+        ),
+        "closing": "🤙 晒个日光浴，准备下一次踏浪搜捕！☀️"
     },
-    # Index 7: 周三 午班
+    # 模板 8
     {
-        "title": "☕️【下午茶特遣队·周三午间电波】",
-        "intro": "来杯咖啡提提神！周三午间巡逻特遣队报道 ☕️🍰",
-        "active": "配合冰美式，一口气吞下 {new_cnt} 个精彩作品！美味极了 🍩",
-        "silent": "咖啡喝完了，博主还没有发新动态，网盘安安静静享受午后阳光~ ☕️",
-        "closing": "咖啡因生效中，小弟神采奕奕~ ⚡️"
+        "title": "🍿【爆米花私人影院·更新动向指南】",
+        "intro": "🎬 欢迎光临私人影院！本期新片上架与放映清单已为您整理妥当：",
+        "author_fmt": (
+            "🎬 <b>导演/博主：</b>{nick}<br>"
+            "  • 📽️ 提交影片总数：<b>{total_fetched}</b> 部<br>"
+            "  • 🍿 上映成功类型：<b>{types_str}</b><br>"
+            "  • 🎞️ 已经放映跳过：<b>{skip_cnt}</b> 部<br>"
+            "  • ❌ 胶片损坏失败：<b>{fail_cnt}</b> 部"
+        ),
+        "summary_fmt": (
+            "🍿 <b>【票房总盘点】</b><br>"
+            "  • 🎉 一共抓取成功：<b>{total_success}</b> 个作品<br>"
+            "  • 🎞️ 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
+            "  • 📽️ 一共抓取失败：<b>{total_failed}</b> 个作品"
+        ),
+        "closing": "🥤 拿好爆米花，快去网盘开启刷片模式吧！✨"
     },
-    # Index 8: 周三 晚班
+    # 模板 9
     {
-        "title": "👾【赛博朋克·周三深夜极客】",
-        "intro": "系统已接入网络矩阵... 周三赛博巡逻夜启动 👾💻",
-        "active": "成功解密数据流！拦截并下载 {new_cnt} 个高清数据包！真香！⚡️",
-        "silent": "数据矩阵暂无异常波动，博主节点未发包，网络保持清洁 🔌",
-        "closing": "断开连接，小弟要进入休眠模式咯 🤖"
+        "title": "🔋【满电特工队·云端同步情报】",
+        "intro": "⚡ 叮！电池已充满 100%！满电特工队为您送上云端同步最新战况：",
+        "author_fmt": (
+            "💡 <b>高能博主：</b>{nick}<br>"
+            "  • 🔋 侦测到信号：<b>{total_fetched}</b> 个<br>"
+            "  • ⚡ 成功充电类型：<b>{types_str}</b><br>"
+            "  • 🔌 满电跳过作品：<b>{skip_cnt}</b> 个<br>"
+            "  • 🪫 断电失败作品：<b>{fail_cnt}</b> 个"
+        ),
+        "summary_fmt": (
+            "⚡ <b>【总电量汇总量】</b><br>"
+            "  • 🟢 一共抓取成功：<b>{total_success}</b> 个作品<br>"
+            "  • 🔋 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
+            "  • 🪫 一共抓取失败：<b>{total_failed}</b> 个作品"
+        ),
+        "closing": "🔌 电量充足，小队随时准备接管任务！⚡"
     },
-    # Index 9: 周四 早班
+    # 模板 10
     {
-        "title": "🏄【黎明冲浪·周四晨间搜捕】",
-        "intro": "周四的曙光照亮大海！冲浪特工踏浪而来 🏄‍♂️🌊",
-        "active": "抓到了巨浪！成功抱回 {new_cnt} 个超棒的新视频/图集！🏄",
-        "silent": "风平浪静，海面上没有新作品出没，准备回岸上晒太阳 🏖️",
-        "closing": "脚踩冲浪板，随时准备迎接下一波热浪~ 🤙"
-    },
-    # Index 10: 周四 午班
-    {
-        "title": "🍗【疯狂星期四·V我50巡逻组】",
-        "intro": "疯狂星期四！V我50，本特工帮你在网盘堆满视频 🍗🍟",
-        "active": "今天不仅有原味鸡，更有 {new_cnt} 个热气腾腾的新备份！香爆了 🍗",
-        "silent": "没等来V50，也没等来博主发新作品，小弟先去吃炸鸡咯 🍟",
-        "closing": "肯德基门前集合，不见不散~ 🥤"
-    },
-    # Index 11: 周四 晚班
-    {
-        "title": "🌆【周末前夜哨所·周四晚间巡查】",
-        "intro": "黎明前的曙光！再坚持一天就是周末！周四晚间巡查组上线 🌆",
-        "active": "博主也在冲刺周末！今晚奉献了 {new_cnt} 个高分作品，全收下啦 🎁",
-        "silent": "博主大概也在提前构思周末大招，今晚零新增，哨所平安无事 🏰",
-        "closing": "哨所灯火通明，静候周五降临！✨"
-    },
-    # Index 12: 周五 早班
-    {
-        "title": "🎉【周末倒计时·周五晨间狂欢预热】",
-        "intro": "周五啦！周五啦！连空气都是甜的！周五晨间小分队出动 🎉🎈",
-        "active": "用 {new_cnt} 个崭新备份开启美好的周五！简直不要太快乐 🥳",
-        "silent": "虽然还没抓到新作品，但周五的快乐丝毫减不了一分！网盘妥妥的 🎈",
-        "closing": "快乐因子爆表，祝你今天心情美美哒~ 💖"
-    },
-    # Index 13: 周五 午班
-    {
-        "title": "🍹【快乐水特工·周五午间电波】",
-        "intro": "喝口奶茶庆祝周五午后！快乐水特工闪亮巡查 🍹",
-        "active": "快乐加倍！搞到了 {new_cnt} 个高清好货，网盘库存又涨啦 🧋",
-        "silent": "奶茶喝完，博主还在憋大招，网盘静候周末盛宴 🍹",
-        "closing": "吸一口珍珠，开启倒计时下班模式 ⏳"
-    },
-    # Index 14: 周五 晚班
-    {
-        "title": "💃【周末狂欢 Night·周五夜间爆破】",
-        "intro": "下班！下课！周末狂欢 Party 正式开始！🥳💃",
-        "active": "周五夜惊喜狂欢！疯狂扫货 {new_cnt} 个高能作品，存入金库！🍾",
-        "silent": "博主也去嗨皮狂欢了，今晚零更新，网盘锁门打烊咯 🔒",
-        "closing": "摇滚起来！开启周末狂欢模式！🎸"
-    },
-    # Index 15: 周六 早班
-    {
-        "title": "💤【睡到自然醒·周六懒人巡逻】",
-        "intro": "伸个懒腰~ 周六阳光正好，懒人特工悠闲伸展 ☀️🛌",
-        "active": "懒人也有大收获！床头一抓就是 {new_cnt} 个新鲜视频/图集！🛌",
-        "silent": "大家都在睡懒觉，博主也不例外~ 零新增，继续躺平 😴",
-        "closing": "翻个身继续做美梦去啦~ 💤"
-    },
-    # Index 16: 周六 午班
-    {
-        "title": "🍰【惬意下午茶·周六 midday 轻松搜搜】",
-        "intro": "吃着甜点逛抖音！周六午后悠闲小分队报道 🍰☕️",
-        "active": "下午茶配大片！顺利收入 {new_cnt} 个超酷作品，完美 🎨",
-        "silent": "享受无忧无虑的周六午后，网盘里岁月静好，无新动态 ~ 🍰",
-        "closing": "祝你度过一个惬意的周末下午~ 甜甜哒！🍡"
-    },
-    # Index 17: 周六 晚班
-    {
-        "title": "🍿【周末爆米花影院·周六夜间大片】",
-        "intro": "灯光准备！爆米花就位！周六黄金档影院巡逻 🍿🎬",
-        "active": "黄金档爆款连连！抱回 {new_cnt} 部精品大作，快去网盘刷片吧 🎬",
-        "silent": "今夜无电影上映，博主休假中，爆米花我一个人独享啦 🍿",
-        "closing": "电影散场，网盘金库门已锁好，晚安~ 🌙"
-    },
-    # Index 18: 周日 早班
-    {
-        "title": "🌿【 Sunday Chill·周日晨间清爽巡航】",
-        "intro": "清晨的第一缕阳光！周日 Chill 巡逻小队上线 🌿🍵",
-        "active": "收获清晨第一份美好！收纳了 {new_cnt} 个优质作品！🍵",
-        "silent": "阳光万里，网盘无恙，今日无需搬运，静享周日时光 🌻",
-        "closing": "大自然的气息真好，今天也要开开心心！🌈"
-    },
-    # Index 19: 周日 午班
-    {
-        "title": "🔋【电量满格·周日午后充电站】",
-        "intro": "给心情充满电！周日午后电力特工满格复活 🔋⚡️",
-        "active": "电量十足！一口气抓取 {new_cnt} 个作品，网盘能量爆发 ⚡️",
-        "silent": "蓄力充电中，博主未发新作品，网盘电池百分百满格 🔋",
-        "closing": "满电状态，随时准备应对各种挑战！⚡️"
-    },
-    # Index 20: 周日 晚班
-    {
-        "title": "🎒【收心大作战·周日深夜备战】",
-        "intro": "周日晚间备战哨响！整理好心情迎接新一周 🎒💼",
-        "active": "周日收官之战！拿下 {new_cnt} 个压轴作品，完美收尾本周 🏆",
-        "silent": "本周最后一轮巡逻顺利完成！零新增，准备齐整，下周继续战斗！👊",
-        "closing": "打卡完毕！下周我们不见不散！🚀"
+        "title": "🌈【彩虹云端小助手·博主更新大盘点】",
+        "intro": "🎈 嗨喽！彩虹小助手闪亮登场~ 为您送上今天最绚丽的云端作品大盘点：",
+        "author_fmt": (
+            "🌺 <b>宝藏博主：</b>{nick}<br>"
+            "  • 🎈 收集到新动态：<b>{total_fetched}</b> 个<br>"
+            "  • 🎁 存入网盘类型：<b>{types_str}</b><br>"
+            "  • 🎀 之前存过跳过：<b>{skip_cnt}</b> 个<br>"
+            "  • 🌧️ 偶遇小雨失败：<b>{fail_cnt}</b> 个"
+        ),
+        "summary_fmt": (
+            "💖 <b>【彩虹宝库总结】</b><br>"
+            "  • 🌈 一共抓取成功：<b>{total_success}</b> 个作品<br>"
+            "  • 🎀 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
+            "  • ☔ 一共抓取失败：<b>{total_failed}</b> 个作品"
+        ),
+        "closing": "🎉 祝您今天每一天都充满七彩阳光！🌟"
     }
 ]
 
-def generate_daily_report(new_cnt, skip_cnt, fails):
+def generate_daily_report(author_stats, fails):
     """
-    【生成一周不重样、酷酷的且带有调皮表情的飞书日报】
-    根据当前星期（0-6）与当前时间段（早/午/晚）自动匹配 21 种独一无二的播报 Persona。
+    【从 10 个充满调皮表情的飞书通知模板中随机抽取 1 套，生成超详细报表】
+    包含：博主名称、抓取的总作品数、各类型及成功抓取数、跳过作品数、失败作品数，以及全局总成功数、跳过数和失败数。
     """
-    now = datetime.now(BJ)
-    weekday = now.weekday() # 0 = 周一 ... 6 = 周日
-    hour = now.hour
+    tmpl = random.choice(NOTIFICATION_TEMPLATES)
+    now_str = datetime.now(BJ).strftime("%Y-%m-%d %H:%M:%S")
 
-    # 判断当前时间的轮次 slot
-    if hour < 11:
-        slot = 0 # 早班
-    elif hour < 17:
-        slot = 1 # 午班
+    # 计算全局汇总数据
+    total_success = sum(s["success_cnt"] for s in author_stats.values())
+    total_skipped = sum(s["skip_cnt"] for s in author_stats.values())
+    total_failed = sum(s["fail_cnt"] for s in author_stats.values())
+
+    # 组装各博主的统计明细
+    author_blocks = []
+    if author_stats:
+        for nick, s in author_stats.items():
+            # 格式化作品类型与抓取数量
+            types_parts = []
+            for t_name, t_cnt in s["types"].items():
+                if t_cnt > 0:
+                    types_parts.append(f"{t_name} {t_cnt} 个")
+            types_str = "，".join(types_parts) if types_parts else "无（未抓取到新类型作品）"
+
+            blk = tmpl["author_fmt"].format(
+                nick=nick,
+                total_fetched=s["total_fetched"],
+                types_str=types_str,
+                skip_cnt=s["skip_cnt"],
+                fail_cnt=s["fail_cnt"]
+            )
+            author_blocks.append(blk)
     else:
-        slot = 2 # 晚班
+        author_blocks.append("👀 本轮巡视未捕获到任何博主作品动态~")
 
-    slot_index = (weekday * 3 + slot) % len(REPORT_PERSONAS)
-    persona = REPORT_PERSONAS[slot_index]
-
-    # 动态拼接标题与正文
-    title = persona["title"]
-    now_str = now.strftime("%Y-%m-%d %H:%M")
-
-    status_narration = persona["active"].format(new_cnt=new_cnt) if new_cnt > 0 else persona["silent"]
+    # 组装全局汇总信息
+    summary_block = tmpl["summary_fmt"].format(
+        total_success=total_success,
+        total_skipped=total_skipped,
+        total_failed=total_failed
+    )
 
     content_lines = [
-        f"{persona['intro']}<br>",
-        f"📅 巡视时间：{now_str}",
-        f"📊 本轮战况：",
-        f"  • 🟢 新增备份：<b>{new_cnt}</b> 个",
-        f"  • ⏭️ 跳过重复：<b>{skip_cnt}</b> 个",
-        f"  • ⚠️ 失败报错：<b>{len(fails)}</b> 个<br>",
-        f"💬 特工说：{status_narration}<br>"
+        f"{tmpl['intro']}<br>",
+        f"⏰ <b>巡视时间：</b>{now_str}<br>",
+        "👥 <b>【各博主详细战果】</b><br>" + "<br><br>".join(author_blocks) + "<br>",
+        f"{summary_block}<br>"
     ]
 
-    # 如果有下载失败的项，添加极度详细的错误排查明细
+    # 如果存在失败异常，列出失败明细与诊断
     if fails:
         content_lines.append("❌ <b>失败明细与诊断提示：</b>")
         for f in fails[:8]:
-            content_lines.append(f"  • {f}")
+            content_lines.append(f"  • ⚠️ {f}")
         if len(fails) > 8:
             content_lines.append(f"  • ...等共 {len(fails)} 项异常")
         content_lines.append("💡 <i>提示：若频繁失败，可能是网络波动或文件大小超出限制，系统将在下一轮重试。</i><br>")
 
-    content_lines.append(f"✨ <i>{persona['closing']}</i>")
-    return title, "<br>".join(content_lines)
+    content_lines.append(f"✨ <i>{tmpl['closing']}</i>")
+    return tmpl["title"], "<br>".join(content_lines)
 
 # ------------------------------------------------------------------------------
 # 辅助网盘操作与文件下载函数
@@ -721,6 +756,22 @@ def main():
            err_type="EMPTY_CRAWL_FIRST_RUN")
         sys.exit(4)
 
+    # 初始化各博主统计数据结构
+    # author_stats = { nick: {"total_fetched": 0, "types": {"视频": 0, "图集": 0}, "success_cnt": 0, "skip_cnt": 0, "fail_cnt": 0} }
+    author_stats = {}
+
+    for it in items:
+        nick = author_of(it)
+        if nick not in author_stats:
+            author_stats[nick] = {
+                "total_fetched": 0,
+                "types": {"视频": 0, "图集": 0},
+                "success_cnt": 0,
+                "skip_cnt": 0,
+                "fail_cnt": 0
+            }
+        author_stats[nick]["total_fetched"] += 1
+
     # 2. 遍历抓取到的作品列表，逐个对比历史记录并下载
     done = 0
     for it in items:
@@ -730,30 +781,42 @@ def main():
         if not aid:
             continue
 
+        nick = author_of(it)
+        itype = "图集" if it.get("images") else "视频"
+
         housekeep(it) # 基础维护（更新博主头像、封面）
 
         # 如果这个作品已经下载过，直接跳过
         if aid in history:
             skip_cnt += 1
+            author_stats[nick]["skip_cnt"] += 1
             continue
 
         try:
             # 处理并下载新作品
             if process(it):
                 done += 1
+                author_stats[nick]["success_cnt"] += 1
+                author_stats[nick]["types"][itype] = author_stats[nick]["types"].get(itype, 0) + 1
                 print(f"[ok] {aid} saved")
+            else:
+                author_stats[nick]["fail_cnt"] += 1
         except Exception as e:
             fails.append(f"作品【{aid}】处理发生异常：{e}")
+            author_stats[nick]["fail_cnt"] += 1
 
         # 随机暂停 3~8 秒，避免下载过快被抖音服务器封禁
         time.sleep(random.randint(3, 8))
 
     # 3. 将最新的历史记录保存回本地文件
     json.dump(history, open(HIST_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-    print(f"[info] This run: New {new_cnt}, Skipped {skip_cnt}, Failed {len(fails)}")
+    tot_success = sum(s["success_cnt"] for s in author_stats.values())
+    tot_skipped = sum(s["skip_cnt"] for s in author_stats.values())
+    tot_failed = sum(s["fail_cnt"] for s in author_stats.values())
+    print(f"[info] This run: New {tot_success}, Skipped {tot_skipped}, Failed {tot_failed}")
 
-    # 4. 根据运行结果生成并发送飞书酷炫播报
-    title, content = generate_daily_report(new_cnt, skip_cnt, fails)
+    # 4. 从 10 套飞书通知模板里随机选择 1 套，生成超详细战报并推送
+    title, content = generate_daily_report(author_stats, fails)
     push(title, content)
 
 if __name__ == "__main__":
