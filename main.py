@@ -28,16 +28,16 @@ def parse_douyin_urls(raw_text):
     """
     【解析并清洗博主主页链接】
     支持单条/多条链接，自动从分享文字、空格或杂质字符中提取合法 HTTP/HTTPS 网址，
-    兼容逗号（中英文）、分号（中英文）、换行、空格等多种分隔符。
+    兼容逗号（中英文）、分号（中英文）、顿号、句号、感叹号、括号、换行、空格等多种分隔符。
     """
     if not raw_text:
         return []
-    # 使用正则表达式匹配出所有 http:// 或 https:// 链接
-    found = re.findall(r'https?://[^\s,\n\r，;；"\'<>（）()]+', raw_text)
+    # 使用正则表达式匹配出所有 http:// 或 https:// 链接（排除中英文常见标点与界定符）
+    found = re.findall(r'https?://[^\s,\n\r，;；"\'<>（）()【】《》「」『』“”‘’。！？：、]+', raw_text)
     urls = []
     for u in found:
         # 移除参数 query 及末尾常见的标点或符号
-        clean_u = u.split("?")[0].rstrip(".,;:;，；\"'()（）")
+        clean_u = u.split("?")[0].rstrip(".,;:;!?，；！？。：、\"'()（）[]【】{}<>《》「」『』")
         if clean_u and clean_u not in urls:
             urls.append(clean_u)
     return urls
