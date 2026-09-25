@@ -1,0 +1,49 @@
+name: Build Windows EXE Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller python-dotenv rich
+
+      - name: Build EXE with PyInstaller
+        run: |
+          pyinstaller --onefile --name douyin-backup launcher.py
+
+      - name: Package Release ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "release_pkg" -Force
+          Copy-Item -Path "dist/douyin-backup.exe" -Destination "release_pkg/"
+          Copy-Item -Path ".env.example" -Destination "release_pkg/"
+          Compress-Archive -Path "release_pkg/*" -DestinationPath "douyin-backup-windows-x64.zip"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          files: douyin-backup-windows-x64.zip
+          name: Douyin Backup Local Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
