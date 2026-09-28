@@ -83,6 +83,7 @@ used_names = set()  # 记录本次运行中用到的文件名，防止重名覆�
 new_cnt = 0         # 本次成功保存的新作品数量
 skip_cnt = 0        # 本次跳过的已保存作品数量
 refetch_cnt = 0     # 本次恢复 Cookie 后重新下载的高清作品数量
+url_author_map = {} # 记录博主 URL 与昵称的映射关系
 
 # ------------------------------------------------------------------------------
 # 3. 辅助功能函数与飞书播报系统（报警推送 & 20套随机常规模板 & Cookie提醒）
@@ -758,7 +759,7 @@ def crawl():
     - Cookie 有效：正常向下滚动以加载全量作品。
     - Cookie 失效：降级抓取模式！不进行页面下翻（防止触发验证码风控与弹窗），仅保留页面刷新时获取到的视频作品。
     """
-    global is_cookie_invalid
+    global is_cookie_invalid, url_author_map
 
     if not COOKIE.strip():
         is_cookie_invalid = True
