@@ -8,7 +8,7 @@
 # 并且还会通过飞书机器人给你发送每日运行报告。
 # ==============================================================================
 
-import os, re, json, time, random, sys
+import os, re, json, time, random, sys, tempfile
 from datetime import datetime, timezone, timedelta
 import requests
 from knock import try1080  # 引入用于尝试获取 1080P 画质视频的辅助函数
@@ -38,6 +38,8 @@ def parse_douyin_urls(raw_text):
     for u in found:
         # 移除参数 query 及末尾常见的标点或符号
         clean_u = u.split("?")[0].rstrip(".,;:;!?，；！？。：、\"'()（）[]【】{}<>《》「」『』")
+        if "douyin.com" not in clean_u:
+            continue
         if clean_u and clean_u not in urls:
             urls.append(clean_u)
     return urls
@@ -74,9 +76,16 @@ HIST_FILE = "history.json"
 history = {}
 if os.path.exists(HIST_FILE):
     try:
-        history = json.load(open(HIST_FILE, encoding="utf-8"))
+        with open(HIST_FILE, encoding="utf-8") as f:
+            history = json.load(f)
     except Exception:
         history = {}
+
+def save_history():
+    tmp = HIST_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, HIST_FILE)
 
 fails = []          # 记录下载失败的项
 used_names = set()  # 记录本次运行中用到的文件名，防止重名覆盖
@@ -90,18 +99,22 @@ url_author_map = {} # 记录博主 URL 与昵称的映射关系
 # ------------------------------------------------------------------------------
 
 def push(title, content, retry=2):
-    """
-    【向飞书机器人发送通知】
-    把消息发送到你的飞书群里，失败会自动重试。
-    """
     text = f"{title}\n{content}".replace("<br>", "\n").replace("<b>", "").replace("</b>", "")
+    lines = text.split("\n")
+    payload = {
+        "msg_type": "post",
+        "content": {
+            "post": {
+                "zh_cn": {
+                    "title": title,
+                    "content": [[{"tag": "text", "text": line}] for line in lines if line.strip()]
+                }
+            }
+        }
+    }
     for _ in range(retry + 1):
         try:
-            r = requests.post(
-                FEISHU_WEBHOOK,
-                json={"msg_type": "text", "content": {"text": text[:3500]}},
-                timeout=15
-            )
+            r = requests.post(FEISHU_WEBHOOK, json=payload, timeout=15)
             j = r.json()
             if r.status_code == 200 and j.get("code", j.get("StatusCode", -1)) == 0:
                 return True
@@ -292,6 +305,33 @@ def fetch(url, retry=3):
         time.sleep(5)
     return None
 
+def fetch_to_tmp(url, retry=3):
+    for i in range(retry):
+        try:
+            r = requests.get(url, headers={"User-Agent": UA, "Referer": "https://www.douyin.com/"}, timeout=300, stream=True)
+            if r.status_code == 200:
+                tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".tmp")
+                for chunk in r.iter_content(chunk_size=1024*1024):
+                    tmp.write(chunk)
+                tmp.close()
+                return tmp.name
+        except Exception:
+            pass
+        time.sleep(5)
+    return None
+
+def wd_put_file(remote_path, local_path, retry=3):
+    for i in range(retry):
+        try:
+            with open(local_path, "rb") as f:
+                r = requests.put(wd(remote_path), data=f, auth=(WD_USER, WD_PASS), timeout=600)
+                if r.status_code in (200, 201, 204):
+                    return True
+        except Exception:
+            pass
+        time.sleep(5*(i+1))
+    return False
+
 def guess_ext(url, default="jpg"):
     """
     【猜测文件后缀名】
@@ -323,8 +363,8 @@ def on_resp(resp):
                 print(f"[warn] API returned non-zero status code ({st}), marking Cookie invalid")
             for it in j.get("aweme_list") or []:
                 collected[it["aweme_id"]] = it
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[warn] on_resp parse error: {e}")
 
 def crawl():
     """
@@ -497,10 +537,7 @@ def process(item, is_degraded=False, is_refetch=False):
         if images:
             clarity_str = "原图_Cookie失效降级"
         else:
-            vw = video_info.get("width") or 0
-            vh = video_info.get("height") or 0
-            res_num = min(vw, vh) if (vw and vh) else 720
-            clarity_str = f"{res_num}P_Cookie失效降级"
+            clarity_str = "默认画质_Cookie失效降级"
     else:
         if images:
             first_img = images[0] if images else {}
@@ -508,9 +545,15 @@ def process(item, is_degraded=False, is_refetch=False):
             ih = first_img.get("height") or 0
             clarity_str = f"{min(iw, ih)}P" if (iw and ih) else "原图"
         else:
-            vw = video_info.get("width") or 0
-            vh = video_info.get("height") or 0
-            clarity_str = f"{min(vw, vh)}P" if (vw and vh) else "1080P"
+            brs = video_info.get("bit_rate") or []
+            if brs:
+                best = max(brs, key=lambda b: b.get("bit_rate", 0))
+                bw = best.get("play_addr", {}).get("width") or video_info.get("width") or 0
+                bh = best.get("play_addr", {}).get("height") or video_info.get("height") or 0
+            else:
+                bw = video_info.get("width") or 0
+                bh = video_info.get("height") or 0
+            clarity_str = f"{min(bw, bh)}P" if (bw and bh) else "1080P"
 
     clarity_tag = f"[{clarity_str}]"
 
@@ -571,10 +614,12 @@ def process(item, is_degraded=False, is_refetch=False):
         if brs:
             best = max(brs, key=lambda b: b.get("bit_rate", 0))
             url = ((best.get("play_addr") or {}).get("url_list") or [None])[0]
+            bw = best.get("play_addr", {}).get("width") or video_info.get("width") or 0
+            bh = best.get("play_addr", {}).get("height") or video_info.get("height") or 0
             gear_info = {
                 "chosen_gear": best.get("gear_name"),
                 "chosen_bitrate": best.get("bit_rate"),
-                "resolution": f"{video.get('width')}x{video.get('height')}",
+                "resolution": f"{bw}x{bh}",
                 "all_gears": [[b.get("gear_name"), b.get("bit_rate")] for b in brs]
             }
         print(f"[quality] {aid} (degraded={is_degraded}) -> {gear_info}")
@@ -583,26 +628,15 @@ def process(item, is_degraded=False, is_refetch=False):
             url = ((video.get("play_addr") or {}).get("url_list") or [None])[0]
 
         if url:
-            # 在非降级且 Cookie 正常时尝试 1080P
-            if not is_degraded:
-                t = try1080(video, gear_info, fetch)
-                vd, gear_info = t[0] or fetch(url), t[1]
-                if gear_info and gear_info.get("resolution"):
-                    try:
-                        rw, rh = map(int, gear_info["resolution"].split("x"))
-                        if rw and rh:
-                            clarity_str = f"{min(rw, rh)}P"
-                    except Exception:
-                        pass
-            else:
-                vd = fetch(url)
-
-            if vd is None:
+            tmp = fetch_to_tmp(url)
+            if tmp is None:
                 fails.append(f"视频【{aid}】网络数据抓取失败")
-            elif wd_put(f"{folder}/{aid}_video.mp4", vd):
+            elif wd_put_file(f"{folder}/{aid}_video.mp4", tmp):
                 files.append(f"{folder}/{aid}_video.mp4")
+                os.unlink(tmp)
             else:
                 fails.append(f"视频【{aid}】WebDAV网盘上传失败")
+                os.unlink(tmp)
 
     cover_ok = False
     cover_url, cover_ext = cover_of(item)
@@ -730,7 +764,7 @@ def main():
         time.sleep(random.randint(3, 8))
 
     # 3. 保存历史记录
-    json.dump(history, open(HIST_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    save_history()
 
     tot_success = sum(s["success_cnt"] for s in author_stats.values())
     tot_refetch = sum(s["refetch_cnt"] for s in author_stats.values())
