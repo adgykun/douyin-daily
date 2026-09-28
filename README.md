@@ -244,7 +244,7 @@ douyin/
 
 如果你不想使用 GitHub Actions 云端挂机，或者希望在自己的 Windows 电脑上直接双击运行，可以使用官方打包好的 Windows 本地独立运行版本：
 
-1. **下载安装包**：前往本项目的 [Releases](../../releases) 页面，下载最新版本的 `douyin-backup-windows-x64.zip` 压缩包。
+1. **下载安装包**：前往本项目的 [Releases](../../releases) 页面，下载最新版本的 `zip` 压缩包。
 2. **解压与配置**：
    - 将下载的 `.zip` 压缩包解压到本地任意目录。
    - 在解压后的文件夹中，找到 `.env.example` 文件，复制一份并重命名为 `.env`。
