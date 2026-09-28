@@ -85,7 +85,7 @@ skip_cnt = 0        # 本次跳过的已保存作品数量
 refetch_cnt = 0     # 本次恢复 Cookie 后重新下载的高清作品数量
 
 # ------------------------------------------------------------------------------
-# 3. 辅助功能函数与飞书播报系统（报警推送 & 20套随机常规模板 & 10套全部跳过模板 & Cookie提醒）
+# 3. 辅助功能函数与飞书播报系统（报警推送 & 20套随机常规模板 & Cookie提醒）
 # ------------------------------------------------------------------------------
 
 def push(title, content, retry=2):
@@ -577,155 +577,81 @@ NOTIFICATION_TEMPLATES = [
     }
 ]
 
-# ------------------------------------------------------------------------------
-# 10 套针对【全部作品跳过】场景的随机飞书通知模板
-# ------------------------------------------------------------------------------
-
-ALL_SKIPPED_TEMPLATES = [
-    # 跳过模板 1
-    {
-        "title": "☕【云端特工·平静巡逻报】",
-        "intro": "☕ 报告长官！特工巡逻了一圈，发现您关注的博主均未发布新动态，所有已知作品已全额在网盘安稳归档~",
-        "closing": "😌 库内万无一失，特工小队继续静默守护！✨"
-    },
-    # 跳过模板 2
-    {
-        "title": "🛡️【金库安防·零增量巡检简报】",
-        "intro": "🔒 尊敬的主人！今日巡检完毕，网盘金库中的作品已被完美保护，本次巡逻发现的作品全部为已备份记录，无需重复下载！",
-        "closing": "🎩 尽职尽责守护您的每一份美好记忆~ 💖"
-    },
-    # 跳过模板 3
-    {
-        "title": "🛸【星际采风号·静轨观测日志】",
-        "intro": "🌌 哔哔！采风号在抖音星系扫描一圈，未探测到新的光子能量波动，所有观测到的作品均在缓存金库中！",
-        "closing": "🛰️ 采风号保持静轨挂机，等待下一次新星爆发！💫"
-    },
-    # 跳过模板 4
-    {
-        "title": "🍕【特工美食·满腹安心简讯】",
-        "intro": "🍣 叮咚！特工外卖小哥上线查看，博主主页的所有美食作品您之前都已经品尝过啦，本次零重复打卡！",
-        "closing": "🍩 肚子饱饱，去喝杯奶茶歇会儿啦~ 🍧"
-    },
-    # 跳过模板 5
-    {
-        "title": "🏎️【极速车队·巡航安全简报】",
-        "intro": "🏁 轰隆隆！搬运车队全速巡航一圈，未发现任何新发弯道作品，所有动态均已在网盘车库停放妥当！",
-        "closing": "🏆 车队保持最佳竞技状态，随时准备再次发车！🏎️"
-    },
-    # 跳过模板 6
-    {
-        "title": "💻【赛博矩阵·无新数据包通告】",
-        "intro": "🤖 [SYSTEM NORMAL] 数据矩阵无新数据包产生，本地缓存 100% 命中，无需额外拉取带宽！",
-        "closing": "🔌 系统继续处于绿色低碳休眠模式... 🤖"
-    },
-    # 跳过模板 7
-    {
-        "title": "🏖️【海滩冲浪·风平浪静战报】",
-        "intro": "🏄‍♂️ 踏浪特工在抖音大潮中巡视了一番，海面风平浪静，所有贝壳作品之前都已经收入囊中啦！",
-        "closing": "🤙 躺在沙滩椅上喝口椰汁，等下一阵大浪！☀️"
-    },
-    # 跳过模板 8
-    {
-        "title": "🍿【私人影院·无新片上映提醒】",
-        "intro": "🎬 影院经理播报：本期巡视各大导演出品库，暂无未上映的新片，旧片库均已在网盘高清备齐！",
-        "closing": "🥤 拿着爆米花复习一下经典好片吧~ ✨"
-    },
-    # 跳过模板 9
-    {
-        "title": "🔋【满电特工·状态完好战报】",
-        "intro": "⚡ 叮！满电特工队巡视完毕，所有博主动态均在蓄电池中妥善保存，本次巡逻全量跳过重复！",
-        "closing": "🔌 电量满格，时刻准备迎接最新震撼作品！⚡"
-    },
-    # 跳过模板 10
-    {
-        "title": "🌈【彩虹小助手·安宁无忧盘点】",
-        "intro": "🎈 嗨喽！彩虹小助手为你带来清爽报告：博主们今天很安静，宝库里的每一份美好都在闪闪发光，没有新作品需要搬运哦~",
-        "closing": "🎉 祝您今天也是平平安安、心情舒畅的一天！🌸"
-    }
-]
-
 def generate_daily_report(author_stats, fails):
     """
-    【从 20 套常规模板或 10 套全部跳过模板中随机抽取 1 套，生成超详细报表】
-    包含：博主名称、抓取的总作品数、各类型及成功抓取数、重抓数、跳过作品数、失败作品数，以及全局总成功数、跳过数和失败数。
+    【从 20 套常规模板中随机抽取 1 套，生成包含所有博主抓取状态的详细报表】
+    包含：所有监控博主的抓取状态（已抓取/未抓取到）、抓取的总作品数、各类型及成功抓取数、重抓数、跳过作品数、失败作品数，以及全局总成功数、跳过数和失败数。
     若 Cookie 失效，也会在卡片中附加每日提示 Banner。
     """
     now_str = datetime.now(BJ).strftime("%Y-%m-%d %H:%M:%S")
 
     # 计算全局汇总数据
+    total_authors = len(author_stats)
+    fetched_authors_cnt = sum(1 for s in author_stats.values() if s["total_fetched"] > 0)
+    unfetched_authors_cnt = total_authors - fetched_authors_cnt
+
     total_success = sum(s["success_cnt"] for s in author_stats.values())
     total_refetch = sum(s.get("refetch_cnt", 0) for s in author_stats.values())
     total_skipped = sum(s["skip_cnt"] for s in author_stats.values())
     total_failed = sum(s["fail_cnt"] for s in author_stats.values())
 
-    # 判断是否属于“全部跳过”场景（有抓到/检查到作品，但成功数=0且跳过数>0）
-    is_all_skipped = (total_success == 0 and total_skipped > 0)
+    tmpl = random.choice(NOTIFICATION_TEMPLATES)
+    title = tmpl["title"]
 
-    if is_all_skipped:
-        tmpl = random.choice(ALL_SKIPPED_TEMPLATES)
-        title = tmpl["title"]
-        content_lines = [
-            f"{tmpl['intro']}<br>",
-            f"⏰ <b>巡视时间：</b>{now_str}<br>",
-            f"📊 <b>【检查汇总】</b><br>"
-            f"  • ⏭️ 一共跳过已备份重复作品：<b>{total_skipped}</b> 个<br>"
-            f"  • 🟢 一共新增保存：<b>0</b> 个<br>"
-            f"  • ❌ 一共失败作品：<b>{total_failed}</b> 个<br>"
-        ]
-        if fails:
-            content_lines.append("❌ <b>失败明细：</b>")
-            for f in fails[:5]:
-                content_lines.append(f"  • ⚠️ {f}")
-        content_lines.append(f"<br>✨ <i>{tmpl['closing']}</i>")
-    else:
-        tmpl = random.choice(NOTIFICATION_TEMPLATES)
-        title = tmpl["title"]
-
-        # 组装各博主的统计明细
-        author_blocks = []
-        if author_stats:
-            for nick, s in author_stats.items():
+    # 组装各博主的统计明细
+    author_blocks = []
+    if author_stats:
+        for nick, s in author_stats.items():
+            if s["total_fetched"] > 0:
                 types_parts = []
                 for t_name, t_cnt in s["types"].items():
                     if t_cnt > 0:
                         types_parts.append(f"{t_name} {t_cnt} 个")
-                types_str = "，".join(types_parts) if types_parts else "无（未抓取到新类型作品）"
+                types_str = "，".join(types_parts) if types_parts else "无（全部跳过或未保存）"
+                status_tag = "🟢 已抓取"
+            else:
+                types_str = "无（未抓取到作品/无新动态）"
+                status_tag = "⚠️ 未抓取到"
 
-                blk = tmpl["author_fmt"].format(
-                    nick=nick,
-                    total_fetched=s["total_fetched"],
-                    types_str=types_str,
-                    refetch_cnt=s.get("refetch_cnt", 0),
-                    skip_cnt=s["skip_cnt"],
-                    fail_cnt=s["fail_cnt"]
-                )
-                author_blocks.append(blk)
-        else:
-            author_blocks.append("👀 本轮巡视未捕获到任何博主作品动态~")
+            disp_nick = f"{nick}（{status_tag}）"
 
-        summary_block = tmpl["summary_fmt"].format(
-            total_success=total_success,
-            total_refetch=total_refetch,
-            total_skipped=total_skipped,
-            total_failed=total_failed
-        )
+            blk = tmpl["author_fmt"].format(
+                nick=disp_nick,
+                total_fetched=s["total_fetched"],
+                types_str=types_str,
+                refetch_cnt=s.get("refetch_cnt", 0),
+                skip_cnt=s["skip_cnt"],
+                fail_cnt=s["fail_cnt"]
+            )
+            author_blocks.append(blk)
+    else:
+        author_blocks.append("👀 本轮巡视未配置或未捕获到任何博主作品动态~")
 
-        content_lines = [
-            f"{tmpl['intro']}<br>",
-            f"⏰ <b>巡视时间：</b>{now_str}<br>",
-            "👥 <b>【各博主详细战果】</b><br>" + "<br><br>".join(author_blocks) + "<br>",
-            f"{summary_block}<br>"
-        ]
+    summary_block = (
+        f"📊 <b>【全局战况汇总】</b><br>"
+        f"  • 👥 监控博主总数：<b>{total_authors}</b> 位（已抓取：<b>{fetched_authors_cnt}</b> 位，未抓取到：<b>{unfetched_authors_cnt}</b> 位）<br>"
+        f"  • 🟢 一共新增保存：<b>{total_success}</b> 个作品<br>"
+        f"  • ✨ 恢复高清重抓：<b>{total_refetch}</b> 个作品<br>"
+        f"  • ⏭️ 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
+        f"  • ❌ 一共抓取失败：<b>{total_failed}</b> 个作品"
+    )
 
-        if fails:
-            content_lines.append("❌ <b>失败明细与诊断提示：</b>")
-            for f in fails[:8]:
-                content_lines.append(f"  • ⚠️ {f}")
-            if len(fails) > 8:
-                content_lines.append(f"  • ...等共 {len(fails)} 项异常")
-            content_lines.append("💡 <i>提示：若频繁失败，可能是网络波动或文件大小超出限制，系统将在下一轮重试。</i><br>")
+    content_lines = [
+        f"{tmpl['intro']}<br>",
+        f"⏰ <b>巡视时间：</b>{now_str}<br>",
+        "👥 <b>【各博主详细战果清单】</b><br>" + "<br><br>".join(author_blocks) + "<br>",
+        f"{summary_block}<br>"
+    ]
 
-        content_lines.append(f"✨ <i>{tmpl['closing']}</i>")
+    if fails:
+        content_lines.append("❌ <b>失败明细与诊断提示：</b>")
+        for f in fails[:8]:
+            content_lines.append(f"  • ⚠️ {f}")
+        if len(fails) > 8:
+            content_lines.append(f"  • ...等共 {len(fails)} 项异常")
+        content_lines.append("💡 <i>提示：若频繁失败，可能是网络波动或文件大小超出限制，系统将在下一轮重试。</i><br>")
+
+    content_lines.append(f"✨ <i>{tmpl['closing']}</i>")
 
     # 如果 Cookie 失效，在通知顶部附加每日提醒 Banner
     if is_cookie_invalid:
@@ -856,6 +782,7 @@ def crawl():
         page.on("response", on_resp)
 
         for u in SHARE_URLS:
+            before_keys = set(collected.keys())
             try:
                 print(f"[crawl] Opening user URL ({'degraded' if is_cookie_invalid else 'normal'}): {u}")
                 page.goto(u, wait_until="domcontentloaded", timeout=60000)
@@ -873,19 +800,23 @@ def crawl():
                 # 如果 Cookie 失效，绝对不下翻滚动，只提取页面首次刷新获取到的视频！
                 if is_cookie_invalid:
                     print("[crawl] Cookie invalid: Skip page scrolling to avoid risk control popups.")
-                    continue
+                else:
+                    # 正常 Cookie 模式：定位滚动区域并滚动页面
+                    page.mouse.move(720, 700)
+                    page.evaluate("""() => { let b = null; for (const e of document.querySelectorAll('*')) { if (e.scrollHeight > e.clientHeight + 100 && e.clientHeight > 200) { if (!b || e.scrollHeight > b.scrollHeight) b = e; } } window.__sc = b || document.scrollingElement; }""")
 
-                # 正常 Cookie 模式：定位滚动区域并滚动页面
-                page.mouse.move(720, 700)
-                page.evaluate("""() => { let b = null; for (const e of document.querySelectorAll('*')) { if (e.scrollHeight > e.clientHeight + 100 && e.clientHeight > 200) { if (!b || e.scrollHeight > b.scrollHeight) b = e; } } window.__sc = b || document.scrollingElement; }""")
+                    empty = 0
+                    while empty < 8 and len(collected) < MAX_PER_RUN * 3:
+                        before = len(collected)
+                        page.evaluate("if (window.__sc) { window.__sc.scrollTop = window.__sc.scrollHeight; } else { window.scrollTo(0, document.body.scrollHeight); }")
+                        page.mouse.wheel(0, 3000)
+                        page.wait_for_timeout(4000)
+                        empty = 0 if len(collected) > before else empty + 1
 
-                empty = 0
-                while empty < 8 and len(collected) < MAX_PER_RUN * 3:
-                    before = len(collected)
-                    page.evaluate("if (window.__sc) { window.__sc.scrollTop = window.__sc.scrollHeight; } else { window.scrollTo(0, document.body.scrollHeight); }")
-                    page.mouse.wheel(0, 3000)
-                    page.wait_for_timeout(4000)
-                    empty = 0 if len(collected) > before else empty + 1
+                new_keys = set(collected.keys()) - before_keys
+                if new_keys:
+                    sample_it = collected[list(new_keys)[0]]
+                    url_author_map[u] = author_of(sample_it)
             except Exception as e:
                 print(f"[warn] Failed to open/crawl URL {u}: {e}")
 
@@ -991,20 +922,41 @@ def process(item, is_degraded=False, is_refetch=False):
     cdate = datetime.fromtimestamp(int(item.get("create_time") or 0), BJ).strftime("%Y-%m-%d") if item.get("create_time") else DATE
     safe = re.sub(r"[^\w.-]+", "_", ((item.get("desc") or "")[:40]).strip()) or "untitled"
 
-    # 清晰度与标注后缀
+    images = item.get("images") or []
     video_info = item.get("video") or {}
-    vw = video_info.get("width") or 0
-    vh = video_info.get("height") or 0
-    res_str = f"{min(vw, vh)}P" if (vw and vh) else "720P"
 
-    clarity_tag = f"[{res_str}_Cookie失效降级]" if is_degraded else ""
+    # 确定清晰度字符串与标签
+    if is_degraded:
+        if images:
+            clarity_str = "原图_Cookie失效降级"
+        else:
+            vw = video_info.get("width") or 0
+            vh = video_info.get("height") or 0
+            res_num = min(vw, vh) if (vw and vh) else 720
+            clarity_str = f"{res_num}P_Cookie失效降级"
+    else:
+        if images:
+            first_img = images[0] if images else {}
+            iw = first_img.get("width") or 0
+            ih = first_img.get("height") or 0
+            clarity_str = f"{min(iw, ih)}P" if (iw and ih) else "原图"
+        else:
+            vw = video_info.get("width") or 0
+            vh = video_info.get("height") or 0
+            clarity_str = f"{min(vw, vh)}P" if (vw and vh) else "1080P"
 
-    aid = f"{cdate}_{safe}{('_' + clarity_tag) if clarity_tag else ''}"
+    clarity_tag = f"[{clarity_str}]"
+
+    # 封面文件名不标注清晰度，作品文件名通通标注清晰度
+    base_name = f"{cdate}_{safe}"
+    cover_aid = base_name
+    aid = f"{base_name}_{clarity_tag}"
 
     # 防止重名
     n = 1
     while aid in used_names:
-        aid = f"{cdate}_{safe}{('_' + clarity_tag) if clarity_tag else ''}({n})"
+        cover_aid = f"{base_name}({n})"
+        aid = f"{base_name}_{clarity_tag}({n})"
         n += 1
     used_names.add(aid)
 
@@ -1017,7 +969,6 @@ def process(item, is_degraded=False, is_refetch=False):
     wd_mkdir(folder)
     wd_mkdir(f"{folder}/封面")
 
-    images = item.get("images") or []
     if images:
         # ---------------- 图集作品处理 ----------------
         for i, img in enumerate(images):
@@ -1069,6 +1020,13 @@ def process(item, is_degraded=False, is_refetch=False):
             if not is_degraded:
                 t = try1080(video, gear_info, fetch)
                 vd, gear_info = t[0] or fetch(url), t[1]
+                if gear_info and gear_info.get("resolution"):
+                    try:
+                        rw, rh = map(int, gear_info["resolution"].split("x"))
+                        if rw and rh:
+                            clarity_str = f"{min(rw, rh)}P"
+                    except Exception:
+                        pass
             else:
                 vd = fetch(url)
 
@@ -1083,7 +1041,7 @@ def process(item, is_degraded=False, is_refetch=False):
     cover_url, cover_ext = cover_of(item)
     if cover_url:
         cd = fetch(cover_url, retry=1)
-        if cd and wd_put(f"{folder}/封面/{aid}.{cover_ext}", cd):
+        if cd and wd_put(f"{folder}/封面/{cover_aid}.{cover_ext}", cd):
             cover_ok = True
 
     if files:
@@ -1123,6 +1081,18 @@ def main():
     print(f"[info] Fetched {len(items)} items (Cookie Invalid: {is_cookie_invalid}), history has {len(history)} items")
 
     author_stats = {}
+    for u in SHARE_URLS:
+        label = url_author_map.get(u, u)
+        if label not in author_stats:
+            author_stats[label] = {
+                "total_fetched": 0,
+                "types": {"视频": 0, "图集": 0},
+                "success_cnt": 0,
+                "refetch_cnt": 0,
+                "skip_cnt": 0,
+                "fail_cnt": 0
+            }
+
     for it in items:
         nick = author_of(it)
         if nick not in author_stats:
