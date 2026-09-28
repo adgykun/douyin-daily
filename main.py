@@ -86,7 +86,7 @@ refetch_cnt = 0     # 本次恢复 Cookie 后重新下载的高清作品数量
 url_author_map = {} # 记录博主 URL 与昵称的映射关系
 
 # ------------------------------------------------------------------------------
-# 3. 辅助功能函数与飞书播报系统（报警推送 & 20套随机常规模板 & Cookie提醒）
+# 3. 辅助功能函数与飞书播报系统（报警推送 & 标准战报 & Cookie提醒）
 # ------------------------------------------------------------------------------
 
 def push(title, content, retry=2):
@@ -151,436 +151,9 @@ def get_cookie_expired_banner():
         "  • <b>更新方式：</b>前往 GitHub 仓库 -> Settings -> Secrets -> 更新 <b>DOUYIN_COOKIE</b>。<br>"
     )
 
-# ------------------------------------------------------------------------------
-# 20 套充满丰富 Emoji 表情与热情的随机飞书通知模板
-# ------------------------------------------------------------------------------
-
-NOTIFICATION_TEMPLATES = [
-    # 模板 1
-    {
-        "title": "🤖【抖音云端特工巡逻战报】",
-        "intro": "⚡ 报告长官！巡逻特工已完成新一轮抖音博主搜捕任务，成果丰硕！",
-        "author_fmt": (
-            "👤 <b>博主昵称：</b>{nick}<br>"
-            "  • 🔍 抓取作品总数：<b>{total_fetched}</b> 个<br>"
-            "  • 📦 抓取成功类型：<b>{types_str}</b><br>"
-            "  • 🔄 恢复重抓高清：<b>{refetch_cnt}</b> 个<br>"
-            "  • ⏭️ 跳过重复作品：<b>{skip_cnt}</b> 个<br>"
-            "  • ⚠️ 抓取失败作品：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "📊 <b>【全局战况汇总】</b><br>"
-            "  • 🟢 一共抓取成功：<b>{total_success}</b> 个作品<br>"
-            "  • ✨ 恢复高清重抓：<b>{total_refetch}</b> 个作品<br>"
-            "  • ⏭️ 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • ❌ 一共抓取失败：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🫡 特工小队归位，随时待命迎接下一轮巡逻！✨"
-    },
-    # 模板 2
-    {
-        "title": "🚀【星际航行·采风号搜捕日志】",
-        "intro": "🛸 哔哔！星际采风号飞船穿梭抖音星系，为您带来最新观测报告：",
-        "author_fmt": (
-            "🪐 <b>目标博主：</b>{nick}<br>"
-            "  • 📡 探测作品总数：<b>{total_fetched}</b> 个<br>"
-            "  • 💎 成功捕获类型：<b>{types_str}</b><br>"
-            "  • 🌟 修复高码轨道：<b>{refetch_cnt}</b> 个<br>"
-            "  • 🌀 避开重复轨道：<b>{skip_cnt}</b> 个<br>"
-            "  • 💥 异常丢包作品：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "🌌 <b>【星系采风总结算】</b><br>"
-            "  • 🌟 一共抓取成功：<b>{total_success}</b> 个作品<br>"
-            "  • 🛰️ 高清修复作品：<b>{total_refetch}</b> 个<br>"
-            "  • 🌀 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • ☄️ 一共抓取失败：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🛰️ 采风号进入蓄能状态，下一站准时启航！💫"
-    },
-    # 模板 3
-    {
-        "title": "👾【赛博朋克·数据矩阵抓取报告】",
-        "intro": "💻 [SYSTEM OK] 抖音节点数据爬取与解密已完成，数据链路接入成功：",
-        "author_fmt": (
-            "🤖 <b>节点博主：</b>{nick}<br>"
-            "  • 🔌 拦截数据包：<b>{total_fetched}</b> 个<br>"
-            "  • 💾 解密成功类型：<b>{types_str}</b><br>"
-            "  • ⚡ 升级无损节点：<b>{refetch_cnt}</b> 个<br>"
-            "  • 🔒 缓存命中跳过：<b>{skip_cnt}</b> 个<br>"
-            "  • ❌ 校验失败作品：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "🖥️ <b>【矩阵总结算】</b><br>"
-            "  • ⚡️ 一共抓取成功：<b>{total_success}</b> 个作品<br>"
-            "  • 🔋 重写高清数据：<b>{total_refetch}</b> 个<br>"
-            "  • 🛡️ 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • ⚠️ 一共抓取失败：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🔌 节点断开，系统已切入休眠节电模式... 🤖"
-    },
-    # 模板 4
-    {
-        "title": "🍕【特工美食快送·新鲜作品派送单】",
-        "intro": "🍱 叮咚！您关注的博主最新作品“热乎套餐”已全速送达，请签收：",
-        "author_fmt": (
-            "👨‍🍳 <b>主厨博主：</b>{nick}<br>"
-            "  • 📜 本期出菜作品：<b>{total_fetched}</b> 道<br>"
-            "  • 🍲 成功上桌类型：<b>{types_str}</b><br>"
-            "  • 🍲 升级升级大餐：<b>{refetch_cnt}</b> 道<br>"
-            "  • 🍱 之前尝过跳过：<b>{skip_cnt}</b> 道<br>"
-            "  • 🍳 上菜失败数量：<b>{fail_cnt}</b> 道"
-        ),
-        "summary_fmt": (
-            "🥤 <b>【外卖总账单】</b><br>"
-            "  • 😋 一共抓取成功：<b>{total_success}</b> 个作品<br>"
-            "  • 🍲 升配高清套餐：<b>{total_refetch}</b> 个<br>"
-            "  • 🥡 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • 🥣 一共抓取失败：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🍩 祝您用餐愉快，小哥先去吃零食啦~ 🍧"
-    },
-    # 模板 5
-    {
-        "title": "🏎️【极速飞车·博主动态快讯】",
-        "intro": "🏎️💨 轰隆隆！极速搬运车队以 200km/h 的速度冲过终点线，战果大公开：",
-        "author_fmt": (
-            "🏁 <b>赛道博主：</b>{nick}<br>"
-            "  • 🚩 发现动态作品：<b>{total_fetched}</b> 个<br>"
-            "  • 🏆 极速冲线类型：<b>{types_str}</b><br>"
-            "  • 🏎️ 换装超级引擎：<b>{refetch_cnt}</b> 个<br>"
-            "  • ⛽ 弯道避让重复：<b>{skip_cnt}</b> 个<br>"
-            "  • 🛑 抛锚失败作品：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "🥇 <b>【车队总成绩】</b><br>"
-            "  • 🎉 一共抓取成功：<b>{total_success}</b> 个作品<br>"
-            "  • 🏆 重新冲线高清：<b>{total_refetch}</b> 个<br>"
-            "  • 🏎️ 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • 🔧 一共抓取失败：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🏆 奖杯已收入囊中，车队回库保养等下一场！🏁"
-    },
-    # 模板 6
-    {
-        "title": "🏆【数字搬运金牌特工·巡检简报】",
-        "intro": "💼 尊敬的主人，您的专属金牌数字搬运官为您呈上最新的巡检与备份报告：",
-        "author_fmt": (
-            "🌟 <b>创作者：</b>{nick}<br>"
-            "  • 🔍 检索到作品：<b>{total_fetched}</b> 个<br>"
-            "  • 📦 归档成功类型：<b>{types_str}</b><br>"
-            "  • 💎 换替换高清档：<b>{refetch_cnt}</b> 个<br>"
-            "  • 📁 已有存档跳过：<b>{skip_cnt}</b> 个<br>"
-            "  • ⚠️ 归档失败作品：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "📈 <b>【网盘金库汇总】</b><br>"
-            "  • ✅ 一共抓取成功：<b>{total_success}</b> 个作品<br>"
-            "  • ✨ 自动升级高清：<b>{total_refetch}</b> 个<br>"
-            "  • 📁 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • 🚨 一共抓取失败：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🎩 随时待命为您服务，愿您今天心情舒畅！💖"
-    },
-    # 模板 7
-    {
-        "title": "🏖️【海滩冲浪小分队·作品搜捕日报】",
-        "intro": "🏄‍♂️ 踏浪而来！冲浪特工在抖音大潮中抓到了不少新鲜货，速来看：",
-        "author_fmt": (
-            "🌴 <b>冲浪博主：</b>{nick}<br>"
-            "  • 🌊 巨浪卷入作品：<b>{total_fetched}</b> 个<br>"
-            "  • 🏄 抱回岸上类型：<b>{types_str}</b><br>"
-            "  • 🐚 捞取无损珍珠：<b>{refetch_cnt}</b> 个<br>"
-            "  • 🐚 沙滩旧贝跳过：<b>{skip_cnt}</b> 个<br>"
-            "  • 🦈 意外脱钩失败：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "🏖️ <b>【海滩收货总计】</b><br>"
-            "  • 🟢 一共抓取成功：<b>{total_success}</b> 个作品<br>"
-            "  • 🌊 重新打捞高清：<b>{total_refetch}</b> 个<br>"
-            "  • 🐚 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • 🌊 一共抓取失败：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🤙 晒个日光浴，准备下一次踏浪搜捕！☀️"
-    },
-    # 模板 8
-    {
-        "title": "🍿【爆米花私人影院·更新动向指南】",
-        "intro": "🎬 欢迎光临私人影院！本期新片上架与放映清单已为您整理妥当：",
-        "author_fmt": (
-            "🎬 <b>导演/博主：</b>{nick}<br>"
-            "  • 📽️ 提交影片总数：<b>{total_fetched}</b> 部<br>"
-            "  • 🍿 上映成功类型：<b>{types_str}</b><br>"
-            "  • 🎞️ 修复蓝光无损：<b>{refetch_cnt}</b> 部<br>"
-            "  • 🎞️ 已经放映跳过：<b>{skip_cnt}</b> 部<br>"
-            "  • ❌ 胶片损坏失败：<b>{fail_cnt}</b> 部"
-        ),
-        "summary_fmt": (
-            "🍿 <b>【票房总盘点】</b><br>"
-            "  • 🎉 一共抓取成功：<b>{total_success}</b> 个作品<br>"
-            "  • 🎥 升级蓝光重抓：<b>{total_refetch}</b> 个<br>"
-            "  • 🎞️ 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • 📽️ 一共抓取失败：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🥤 拿好爆米花，快去网盘开启刷片模式吧！✨"
-    },
-    # 模板 9
-    {
-        "title": "🔋【满电特工队·云端同步情报】",
-        "intro": "⚡ 叮！电池已充满 100%！满电特工队为您送上云端同步最新战况：",
-        "author_fmt": (
-            "💡 <b>高能博主：</b>{nick}<br>"
-            "  • 🔋 侦测到信号：<b>{total_fetched}</b> 个<br>"
-            "  • ⚡ 成功充电类型：<b>{types_str}</b><br>"
-            "  • ⚡ 强效满血重刷：<b>{refetch_cnt}</b> 个<br>"
-            "  • 🔌 满电跳过作品：<b>{skip_cnt}</b> 个<br>"
-            "  • 🪫 断电失败作品：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "⚡ <b>【总电量汇总量】</b><br>"
-            "  • 🟢 一共抓取成功：<b>{total_success}</b> 个作品<br>"
-            "  • 🔋 高清重刷充电：<b>{total_refetch}</b> 个<br>"
-            "  • 🔋 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • 🪫 一共抓取失败：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🔌 电量充足，小队随时准备接管任务！⚡"
-    },
-    # 模板 10
-    {
-        "title": "🌈【彩虹云端小助手·博主更新大盘点】",
-        "intro": "🎈 嗨喽！彩虹小助手闪亮登场~ 为您送上今天最绚丽的云端作品大盘点：",
-        "author_fmt": (
-            "🌺 <b>宝藏博主：</b>{nick}<br>"
-            "  • 🎈 收集到新动态：<b>{total_fetched}</b> 个<br>"
-            "  • 🎁 存入网盘类型：<b>{types_str}</b><br>"
-            "  • 🎨 刷新绚丽画质：<b>{refetch_cnt}</b> 个<br>"
-            "  • 🎀 之前存过跳过：<b>{skip_cnt}</b> 个<br>"
-            "  • 🌧️ 偶遇小雨失败：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "💖 <b>【彩虹宝库总结】</b><br>"
-            "  • 🌈 一共抓取成功：<b>{total_success}</b> 个作品<br>"
-            "  • 🌈 重新补全彩虹：<b>{total_refetch}</b> 个<br>"
-            "  • 🎀 一共跳过重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • ☔ 一共抓取失败：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🎉 祝您今天每一天都充满七彩阳光！🌟"
-    },
-    # 模板 11
-    {
-        "title": "🕵️‍♂️【黑客帝国·代码流备份简报】",
-        "intro": "🕶️ [Matrix Code] 探针线程已从抖音服务器提取完毕最新数据流：",
-        "author_fmt": (
-            "🕹️ <b>目标节点：</b>{nick}<br>"
-            "  • 📡 捕获封包：<b>{total_fetched}</b> 个<br>"
-            "  • 💾 解析载荷：<b>{types_str}</b><br>"
-            "  • ⚡ 无损重构：<b>{refetch_cnt}</b> 个<br>"
-            "  • 🛡️ 校验重复：<b>{skip_cnt}</b> 个<br>"
-            "  • ⚠️ 丢包丢失：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "🖥️ <b>【矩阵链路总结】</b><br>"
-            "  • 🟩 成功注入网盘：<b>{total_success}</b> 个作品<br>"
-            "  • 🟩 重新高精渲染：<b>{total_refetch}</b> 个作品<br>"
-            "  • 🟨 自动忽略重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • 🟥 异常中断请求：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🕶️ 敲下 Enter，退出母体，准备下一次同步... 💊"
-    },
-    # 模板 12
-    {
-        "title": "☕【咖啡馆小歇·创作搜罗简讯】",
-        "intro": "☕ 拿上一杯热美式，特工为您送上边喝咖啡边搜罗到的博主新风采：",
-        "author_fmt": (
-            "☕ <b>灵感博主：</b>{nick}<br>"
-            "  • 📖 浏览作品：<b>{total_fetched}</b> 个<br>"
-            "  • 🍰 享用类型：<b>{types_str}</b><br>"
-            "  • ☕ 升级原磨浓香：<b>{refetch_cnt}</b> 个<br>"
-            "  • 🍪 之前品尝过：<b>{skip_cnt}</b> 个<br>"
-            "  • 🥀 打翻咖啡：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "🍰 <b>【咖啡馆总账单】</b><br>"
-            "  • ☕ 满意打包：<b>{total_success}</b> 个作品<br>"
-            "  • ☕ 重新特调高清：<b>{total_refetch}</b> 个作品<br>"
-            "  • 🍪 避免重复打卡：<b>{total_skipped}</b> 个作品<br>"
-            "  • 🥐 意外缺货：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🍰 享受惬意时光，期待下一次灵感碰撞！✨"
-    },
-    # 模板 13
-    {
-        "title": "🐱【猫咪巡逻队·萌系云端战果】",
-        "intro": "🐱 喵呜~ 喵喵特工队踩着肉垫帮您巡视了抖音领地，抓到了好东西：",
-        "author_fmt": (
-            "🐾 <b>巡视博主：</b>{nick}<br>"
-            "  • 🐾 爪子扑到：<b>{total_fetched}</b> 个<br>"
-            "  • 🐟 叼回小黄鱼：<b>{types_str}</b><br>"
-            "  • 🐾 重新打磨利爪：<b>{refetch_cnt}</b> 个<br>"
-            "  • 🧶 旧毛线球跳过：<b>{skip_cnt}</b> 个<br>"
-            "  • 🙀 溜走的小鱼：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "🐟 <b>【猫粮仓库盘点】</b><br>"
-            "  • 😻 成功运回仓库：<b>{total_success}</b> 个作品<br>"
-            "  • 🐾 升级超级大鱼：<b>{total_refetch}</b> 个作品<br>"
-            "  • 🧶 跳过已有玩具：<b>{total_skipped}</b> 个作品<br>"
-            "  • 🙀 抓捕失败：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "💤 伸个懒腰，小猫咪要抱抱去晒太阳啦~ ☀️"
-    },
-    # 模板 14
-    {
-        "title": "🎮【头号玩家·游戏通关通报】",
-        "intro": "🎮 Level Up! 搬运副本已通关，装备与奖励已全额放入您的网盘背包：",
-        "author_fmt": (
-            "👾 <b>BOSS博主：</b>{nick}<br>"
-            "  • 🗡️ 掉落宝箱：<b>{total_fetched}</b> 个<br>"
-            "  • 🛡️ 拾取装备类型：<b>{types_str}</b><br>"
-            "  • 💎 锻造史诗高清：<b>{refetch_cnt}</b> 个<br>"
-            "  • 🎒 背包已满跳过：<b>{skip_cnt}</b> 个<br>"
-            "  • ☠️ 掉落失败：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "🏆 <b>【副本通关结算】</b><br>"
-            "  • 💎 获得稀有图鉴：<b>{total_success}</b> 个作品<br>"
-            "  • 🗡️ 升级传说高清：<b>{total_refetch}</b> 个作品<br>"
-            "  • 🎒 过滤重复道具：<b>{total_skipped}</b> 个作品<br>"
-            "  • 👾 副本未掉落：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🕹️ 存盘成功，随时准备开启下一局刷图！💥"
-    },
-    # 模板 15
-    {
-        "title": "🚚【顺丰速运·云端冷链专列简报】",
-        "intro": "📦 嘀！您的专属抖音内容冷链运输车已顺畅抵达目的地网盘站：",
-        "author_fmt": (
-            "🏭 <b>发货厂家：</b>{nick}<br>"
-            "  • 📦 装车件数：<b>{total_fetched}</b> 件<br>"
-            "  • 🚚 签收类型：<b>{types_str}</b><br>"
-            "  • 📦 重新包装真原画：<b>{refetch_cnt}</b> 件<br>"
-            "  • 🔂 重复包裹拦截：<b>{skip_cnt}</b> 件<br>"
-            "  • 💥 运输损耗：<b>{fail_cnt}</b> 件"
-        ),
-        "summary_fmt": (
-            "📮 <b>【物流总签收单】</b><br>"
-            "  • 📦 成功入库：<b>{total_success}</b> 个作品<br>"
-            "  • 🚚 高清原画升级：<b>{total_refetch}</b> 个作品<br>"
-            "  • 🔂 过滤重复单号：<b>{total_skipped}</b> 个作品<br>"
-            "  • ❌ 异常退单：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "📦 感谢使用专线速运，祝您生活愉快！🌟"
-    },
-    # 模板 16
-    {
-        "title": "🛸【外星科技·量子传输回传报告】",
-        "intro": "📡 收到来自地球抖音频道的量子纠缠信号，数据传输正常：",
-        "author_fmt": (
-            "🛸 <b>地球信号源：</b>{nick}<br>"
-            "  • 📡 接收波动：<b>{total_fetched}</b> 次<br>"
-            "  • 🌌 解码光子：<b>{types_str}</b><br>"
-            "  • 💫 量子重构高清：<b>{refetch_cnt}</b> 次<br>"
-            "  • 🛰️ 过滤坍缩重复：<b>{skip_cnt}</b> 次<br>"
-            "  • ☄️ 空间风暴干扰：<b>{fail_cnt}</b> 次"
-        ),
-        "summary_fmt": (
-            "🌌 <b>【量子传输总览】</b><br>"
-            "  • 🌟 成功纠缠存储：<b>{total_success}</b> 个作品<br>"
-            "  • 💫 高清无损重构：<b>{total_refetch}</b> 个作品<br>"
-            "  • 🛰️ 避开相干重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • ☄️ 信号衰减丢失：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🛸 传输信道保持稳定，等待下次波动... 💫"
-    },
-    # 模板 17
-    {
-        "title": "🎨【艺术画廊·展品珍藏日报】",
-        "intro": "🖼️ 欢迎来到云端艺术馆，本期从抖音搜罗到的新画作已入库展出：",
-        "author_fmt": (
-            "🎨 <b>艺术家：</b>{nick}<br>"
-            "  • 🖌️ 创作画作：<b>{total_fetched}</b> 幅<br>"
-            "  • 🖼️ 展出类型：<b>{types_str}</b><br>"
-            "  • 💎 换置无损原作：<b>{refetch_cnt}</b> 幅<br>"
-            "  • 🏛️ 画廊已有跳过：<b>{skip_cnt}</b> 幅<br>"
-            "  • 🥀 画框受损：<b>{fail_cnt}</b> 幅"
-        ),
-        "summary_fmt": (
-            "🏛️ <b>【画廊馆藏总结】</b><br>"
-            "  • 🖼️ 成功珍藏：<b>{total_success}</b> 个作品<br>"
-            "  • 🎨 重新装裱高清：<b>{total_refetch}</b> 个作品<br>"
-            "  • 🏛️ 跳过已有馆藏：<b>{total_skipped}</b> 个作品<br>"
-            "  • 🥀 运输遗失：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "✨ 漫步艺术长廊，感受生活的美好！🌹"
-    },
-    # 模板 18
-    {
-        "title": "🎪【奇幻马戏团·精彩演出简讯】",
-        "intro": "🎪 精彩绝伦！奇幻马戏团特工巡演结束，为您带回精彩幕后花絮：",
-        "author_fmt": (
-            "🤹 <b>主演博主：</b>{nick}<br>"
-            "  • 🎪 演出节目：<b>{total_fetched}</b> 个<br>"
-            "  • 精彩收录：<b>{types_str}</b><br>"
-            "  • 🎪 升级特写高清：<b>{refetch_cnt}</b> 个<br>"
-            "  • 🎟️ 已经看过了：<b>{skip_cnt}</b> 个<br>"
-            "  • ❌ 道具失误：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "🎟️ <b>【演出票房汇总】</b><br>"
-            "  • 🎈 成功打卡：<b>{total_success}</b> 个作品<br>"
-            "  • ✨ 升级高清特写：<b>{total_refetch}</b> 个作品<br>"
-            "  • 🎟️ 避开重复节目：<b>{total_skipped}</b> 个作品<br>"
-            "  • 🎪 节目取消：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🎪 谢幕致意，期待下一场大秀精彩上演！👏"
-    },
-    # 模板 19
-    {
-        "title": "🚢【大航海时代·宝藏猎人寻宝记】",
-        "intro": "⚓ 扬帆起航！宝藏猎人号驶向抖音大海，为您打捞回了珍贵宝箱：",
-        "author_fmt": (
-            "🏴‍☠️ <b>岛屿博主：</b>{nick}<br>"
-            "  • 🗺️ 发现宝箱：<b>{total_fetched}</b> 个<br>"
-            "  • 🪙 宝物类型：<b>{types_str}</b><br>"
-            "  • 💎 换取纯金重抓：<b>{refetch_cnt}</b> 个<br>"
-            "  • 🪙 纯金金币已有：<b>{skip_cnt}</b> 个<br>"
-            "  • 🌊 沉入海底：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "💎 <b>【航海金库结清】</b><br>"
-            "  • 🪙 成功搬运入库：<b>{total_success}</b> 个作品<br>"
-            "  • 💎 升级纯金原画：<b>{total_refetch}</b> 个作品<br>"
-            "  • ⚓ 跳过重复金币：<b>{total_skipped}</b> 个作品<br>"
-            "  • 🌊 触礁遗失：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "⚓ 离港远航，向着伟大的航路继续进发！🌊"
-    },
-    # 模板 20
-    {
-        "title": "🌸【二次元·云端搜集日常】",
-        "intro": "🌸 酱酱~ 魔法特工为你带回了超多心动的博主更新萌系作品哦：",
-        "author_fmt": (
-            "🌸 <b>宝藏博主：</b>{nick}<br>"
-            "  • 📜 发现更新：<b>{total_fetched}</b> 个<br>"
-            "  • 🎀 萌系类型：<b>{types_str}</b><br>"
-            "  • 💖 魔法升级高清：<b>{refetch_cnt}</b> 个<br>"
-            "  • 🎀 以前收集过：<b>{skip_cnt}</b> 个<br>"
-            "  • 🌧️ 魔法失效：<b>{fail_cnt}</b> 个"
-        ),
-        "summary_fmt": (
-            "💖 <b>【心动百宝箱】</b><br>"
-            "  • 🌸 成功收藏：<b>{total_success}</b> 个作品<br>"
-            "  • 💖 高清无损魔法：<b>{total_refetch}</b> 个作品<br>"
-            "  • 🎀 自动跳过重复：<b>{total_skipped}</b> 个作品<br>"
-            "  • 🌧️ 收集失败：<b>{total_failed}</b> 个作品"
-        ),
-        "closing": "🌸 今天也要保持满满元气，加油鸭！(๑•̀ㅂ•́)و✧"
-    }
-]
-
 def generate_daily_report(author_stats, fails):
     """
-    【从 20 套常规模板中随机抽取 1 套，生成包含所有博主抓取状态的详细报表】
+    【生成统一标准飞书每日巡视战报】
     包含：所有监控博主的抓取状态（已抓取/未抓取到）、抓取的总作品数、各类型及成功抓取数、重抓数、跳过作品数、失败作品数，以及全局总成功数、跳过数和失败数。
     若 Cookie 失效，也会在卡片中附加每日提示 Banner。
     """
@@ -596,8 +169,7 @@ def generate_daily_report(author_stats, fails):
     total_skipped = sum(s["skip_cnt"] for s in author_stats.values())
     total_failed = sum(s["fail_cnt"] for s in author_stats.values())
 
-    tmpl = random.choice(NOTIFICATION_TEMPLATES)
-    title = tmpl["title"]
+    title = "🤖【抖音云端特工巡逻战报】"
 
     # 组装各博主的统计明细
     author_blocks = []
@@ -616,13 +188,13 @@ def generate_daily_report(author_stats, fails):
 
             disp_nick = f"{nick}（{status_tag}）"
 
-            blk = tmpl["author_fmt"].format(
-                nick=disp_nick,
-                total_fetched=s["total_fetched"],
-                types_str=types_str,
-                refetch_cnt=s.get("refetch_cnt", 0),
-                skip_cnt=s["skip_cnt"],
-                fail_cnt=s["fail_cnt"]
+            blk = (
+                f"👤 <b>博主昵称：</b>{disp_nick}<br>"
+                f"  • 🔍 抓取作品总数：<b>{s['total_fetched']}</b> 个<br>"
+                f"  • 📦 抓取成功类型：<b>{types_str}</b><br>"
+                f"  • 🔄 恢复重抓高清：<b>{s.get('refetch_cnt', 0)}</b> 个<br>"
+                f"  • ⏭️ 跳过重复作品：<b>{s['skip_cnt']}</b> 个<br>"
+                f"  • ⚠️ 抓取失败作品：<b>{s['fail_cnt']}</b> 个"
             )
             author_blocks.append(blk)
     else:
@@ -638,7 +210,7 @@ def generate_daily_report(author_stats, fails):
     )
 
     content_lines = [
-        f"{tmpl['intro']}<br>",
+        "⚡ 报告长官！巡逻特工已完成新一轮抖音博主搜捕任务，成果丰硕！<br>",
         f"⏰ <b>巡视时间：</b>{now_str}<br>",
         "👥 <b>【各博主详细战果清单】</b><br>" + "<br><br>".join(author_blocks) + "<br>",
         f"{summary_block}<br>"
@@ -652,13 +224,14 @@ def generate_daily_report(author_stats, fails):
             content_lines.append(f"  • ...等共 {len(fails)} 项异常")
         content_lines.append("💡 <i>提示：若频繁失败，可能是网络波动或文件大小超出限制，系统将在下一轮重试。</i><br>")
 
-    content_lines.append(f"✨ <i>{tmpl['closing']}</i>")
+    content_lines.append("🫡 特工小队归位，随时待命迎接下一轮巡逻！✨")
 
     # 如果 Cookie 失效，在通知顶部附加每日提醒 Banner
     if is_cookie_invalid:
         content_lines.insert(0, get_cookie_expired_banner() + "<br>----------------------------------------<br>")
 
     return title, "<br>".join(content_lines)
+
 
 # ------------------------------------------------------------------------------
 # 辅助网盘操作与文件下载函数
@@ -741,7 +314,7 @@ def on_resp(resp):
     """
     global is_cookie_invalid
     try:
-        if "/aweme/v1/web/aweme/post/" in resp.url and resp.status == 200:
+        if ("/aweme/v1/web/aweme/post/" in resp.url or "/aweme/v2/web/aweme/post/" in resp.url) and resp.status == 200:
             j = resp.json()
             st = j.get("status_code")
             api_status.append(st)
@@ -759,7 +332,7 @@ def crawl():
     - Cookie 有效：正常向下滚动以加载全量作品。
     - Cookie 失效：降级抓取模式！不进行页面下翻（防止触发验证码风控与弹窗），仅保留页面刷新时获取到的视频作品。
     """
-    global is_cookie_invalid, url_author_map
+    global is_cookie_invalid, url_author_map, collected, api_status
 
     if not COOKIE.strip():
         is_cookie_invalid = True
@@ -779,11 +352,10 @@ def crawl():
                     cookies.append({"name": k.strip(), "value": v.strip(), "domain": ".douyin.com", "path": "/"})
             ctx.add_cookies(cookies)
 
-        page = ctx.new_page()
-        page.on("response", on_resp)
-
         for u in SHARE_URLS:
             before_keys = set(collected.keys())
+            page = ctx.new_page()
+            page.on("response", on_resp)
             try:
                 print(f"[crawl] Opening user URL ({'degraded' if is_cookie_invalid else 'normal'}): {u}")
                 page.goto(u, wait_until="domcontentloaded", timeout=60000)
@@ -818,15 +390,20 @@ def crawl():
                 if new_keys:
                     sample_it = collected[list(new_keys)[0]]
                     url_author_map[u] = author_of(sample_it)
+
+                # 检查验证码风控
+                if ("verify" in page.url) or ("captcha" in page.url):
+                    p0("触发抖音验证码/风控限制",
+                       detail=f"访问页面触发风控重定向：{page.url}\n可能是短时间内请求过于频繁。系统已自动保护性暂停保存任务。",
+                       err_type="CAPTCHA_RISK_CONTROL")
+                    browser.close(); sys.exit(5)
             except Exception as e:
                 print(f"[warn] Failed to open/crawl URL {u}: {e}")
-
-        # 检查验证码风控
-        if ("verify" in page.url) or ("captcha" in page.url):
-            p0("触发抖音验证码/风控限制",
-               detail=f"访问页面触发风控重定向：{page.url}\n可能是短时间内请求过于频繁。系统已自动保护性暂停保存任务。",
-               err_type="CAPTCHA_RISK_CONTROL")
-            browser.close(); sys.exit(5)
+            finally:
+                try:
+                    page.close()
+                except Exception:
+                    pass
 
         time.sleep(2)
 
@@ -835,18 +412,7 @@ def crawl():
             is_cookie_invalid = True
             print(f"[crawl] API statuses all non-zero ({api_status}), marked Cookie invalid")
 
-        # 仅在非 Cookie 降级模式且依然没有收集到作品时才补充滚动
-        if not is_cookie_invalid:
-            empty_rounds = 0
-            while len(collected) < MAX_PER_RUN * 3 and empty_rounds < 6:
-                before = len(collected)
-                page.mouse.wheel(0, 3000)
-                page.wait_for_timeout(2000 + random.randint(500, 2000))
-                empty_rounds = empty_rounds + 1 if len(collected) == before else 0
-
-        _b = page.content()
-        _cap = ("验证码" in _b) or ("captcha" in _b.lower())
-        print(f"[diag] bodylen={len(_b)} api={api_status} items={len(collected)} cap={_cap} cookie_invalid={is_cookie_invalid}")
+        print(f"[diag] api={api_status} items={len(collected)} cookie_invalid={is_cookie_invalid}")
         browser.close()
 
 # ------------------------------------------------------------------------------
