@@ -359,8 +359,11 @@ def on_resp(resp):
             st = j.get("status_code")
             api_status.append(st)
             if st != 0:
-                is_cookie_invalid = True
-                print(f"[warn] API returned non-zero status code ({st}), marking Cookie invalid")
+                if sum(1 for s in api_status if s != 0) >= 2:
+                    is_cookie_invalid = True
+                    print(f"[warn] API returned non-zero status code ({st}) twice, marking Cookie invalid")
+                else:
+                    print(f"[warn] API returned non-zero status code ({st}), single occurrence, not marking invalid yet")
             for it in j.get("aweme_list") or []:
                 collected[it["aweme_id"]] = it
     except Exception as e:
@@ -391,6 +394,16 @@ def crawl():
                     k, v = kv.split("=", 1)
                     cookies.append({"name": k.strip(), "value": v.strip(), "domain": ".douyin.com", "path": "/"})
             ctx.add_cookies(cookies)
+
+        # 会话预热：种下前置 Cookie，避免第一个目标 URL 冷启动失败
+        warm = ctx.new_page()
+        try:
+            warm.goto("https://www.douyin.com/", wait_until="domcontentloaded", timeout=60000)
+            warm.wait_for_timeout(6000)
+        except Exception as e:
+            print(f"[warn] warm-up page failed: {e}")
+        finally:
+            warm.close()
 
         for u in SHARE_URLS:
             before_keys = set(collected.keys())
@@ -427,6 +440,23 @@ def crawl():
                         empty = 0 if len(collected) > before else empty + 1
 
                 new_keys = set(collected.keys()) - before_keys
+                if not new_keys:
+                    print(f"[crawl] No items from {u}, reload once for cold-start retry")
+                    try:
+                        page.reload(wait_until="domcontentloaded", timeout=60000)
+                        page.wait_for_timeout(8000)
+                        if not is_cookie_invalid:
+                            for _ in range(3):
+                                b2 = len(collected)
+                                page.evaluate("if (window.__sc) { window.__sc.scrollTop = window.__sc.scrollHeight; } else { window.scrollTo(0, document.body.scrollHeight); }")
+                                page.mouse.wheel(0, 3000)
+                                page.wait_for_timeout(4000)
+                                if len(collected) > b2:
+                                    break
+                    except Exception as e:
+                        print(f"[warn] reload retry failed: {e}")
+                    new_keys = set(collected.keys()) - before_keys
+
                 if new_keys:
                     sample_it = collected[list(new_keys)[0]]
                     url_author_map[u] = author_of(sample_it)
