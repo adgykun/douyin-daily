@@ -93,13 +93,15 @@ new_cnt = 0         # 本次成功保存的新作品数量
 skip_cnt = 0        # 本次跳过的已保存作品数量
 refetch_cnt = 0     # 本次恢复 Cookie 后重新下载的高清作品数量
 url_author_map = {} # 记录博主 URL 与昵称的映射关系
+last_fetch_error = "" # 记录最近一次网络抓取失败的原因
+last_wd_error = ""    # 记录最近一次 WebDAV 网盘上传失败的原因
 
 # ------------------------------------------------------------------------------
 # 3. 辅助功能函数与飞书播报系统（报警推送 & 标准战报 & Cookie提醒）
 # ------------------------------------------------------------------------------
 
 def push(title, content, retry=2):
-    text = f"{title}\n{content}".replace("<br>", "\n").replace("<b>", "").replace("</b>", "")
+    text = content.replace("<br>", "\n").replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "")
     lines = text.split("\n")
     payload = {
         "msg_type": "post",
@@ -267,8 +269,10 @@ def wd_mkdir(path):
 def wd_put(path, data, retry=3):
     """
     【上传文件内容到 WebDAV 网盘】
-    上传失败会自动重试最多 3 次。
+    上传失败会自动重试最多 3 次，并记录错误原因。
     """
+    global last_wd_error
+    last_wd_error = "未知网盘写入错误"
     for i in range(retry):
         try:
             r = requests.put(
@@ -279,17 +283,32 @@ def wd_put(path, data, retry=3):
                 timeout=600
             )
             if r.status_code in (200, 201, 204):
+                last_wd_error = ""
                 return True
-        except Exception:
-            pass
+            elif r.status_code == 401:
+                last_wd_error = "WebDAV 认证失败（账号或应用密码错误）"
+            elif r.status_code == 507:
+                last_wd_error = "WebDAV 网盘存储空间已满"
+            elif r.status_code == 404:
+                last_wd_error = "WebDAV 目标文件夹不存在或路径错误"
+            else:
+                last_wd_error = f"WebDAV 网盘响应 HTTP {r.status_code}"
+        except requests.exceptions.Timeout:
+            last_wd_error = "WebDAV 网盘上传超时（网络波动或上传服务过慢）"
+        except requests.exceptions.ConnectionError:
+            last_wd_error = "WebDAV 网盘连接失败（无法建立网络连接）"
+        except Exception as e:
+            last_wd_error = f"WebDAV 网盘上传异常（{e}）"
         time.sleep(5 * (i + 1))
     return False
 
 def fetch(url, retry=3):
     """
     【从网上下载文件/视频/图片的数据】
-    带伪装请求头，下载失败会自动重试。
+    带伪装请求头，下载失败会自动重试，并记录错误原因。
     """
+    global last_fetch_error
+    last_fetch_error = "未知网络下载错误"
     for i in range(retry):
         try:
             r = requests.get(
@@ -299,13 +318,26 @@ def fetch(url, retry=3):
                 stream=True
             )
             if r.status_code == 200:
+                last_fetch_error = ""
                 return r.content
-        except Exception:
-            pass
+            elif r.status_code == 403:
+                last_fetch_error = "HTTP 403 拒绝访问（资源防盗链或链接失效）"
+            elif r.status_code == 404:
+                last_fetch_error = "HTTP 404 资源未找到（作品可能已被博主删除或隐藏）"
+            else:
+                last_fetch_error = f"HTTP Status {r.status_code} 服务器响应异常"
+        except requests.exceptions.Timeout:
+            last_fetch_error = "网络请求超时（服务器响应过慢或连接超时）"
+        except requests.exceptions.ConnectionError:
+            last_fetch_error = "网络连接失败（无法建立与服务器的连接）"
+        except Exception as e:
+            last_fetch_error = f"网络请求发生异常（{e}）"
         time.sleep(5)
     return None
 
 def fetch_to_tmp(url, retry=3):
+    global last_fetch_error
+    last_fetch_error = "未知网络下载错误"
     for i in range(retry):
         try:
             r = requests.get(url, headers={"User-Agent": UA, "Referer": "https://www.douyin.com/"}, timeout=300, stream=True)
@@ -314,21 +346,47 @@ def fetch_to_tmp(url, retry=3):
                 for chunk in r.iter_content(chunk_size=1024*1024):
                     tmp.write(chunk)
                 tmp.close()
+                last_fetch_error = ""
                 return tmp.name
-        except Exception:
-            pass
+            elif r.status_code == 403:
+                last_fetch_error = "HTTP 403 拒绝访问（视频链接已过期或防盗链限制）"
+            elif r.status_code == 404:
+                last_fetch_error = "HTTP 404 视频资源未找到（作品可能已被下架或删除）"
+            else:
+                last_fetch_error = f"HTTP Status {r.status_code} 服务器响应异常"
+        except requests.exceptions.Timeout:
+            last_fetch_error = "视频下载超时（网络波动或数据流过大）"
+        except requests.exceptions.ConnectionError:
+            last_fetch_error = "视频下载连接中断（无法连接视频服务器）"
+        except Exception as e:
+            last_fetch_error = f"视频下载发生异常（{e}）"
         time.sleep(5)
     return None
 
 def wd_put_file(remote_path, local_path, retry=3):
+    global last_wd_error
+    last_wd_error = "未知网盘写入错误"
     for i in range(retry):
         try:
             with open(local_path, "rb") as f:
                 r = requests.put(wd(remote_path), data=f, auth=(WD_USER, WD_PASS), timeout=600)
                 if r.status_code in (200, 201, 204):
+                    last_wd_error = ""
                     return True
-        except Exception:
-            pass
+                elif r.status_code == 401:
+                    last_wd_error = "WebDAV 认证失败（账号或密码错误）"
+                elif r.status_code == 507:
+                    last_wd_error = "WebDAV 网盘存储空间不足"
+                elif r.status_code == 404:
+                    last_wd_error = "WebDAV 目标路径不存在"
+                else:
+                    last_wd_error = f"WebDAV 网盘响应 HTTP {r.status_code}"
+        except requests.exceptions.Timeout:
+            last_wd_error = "WebDAV 大文件上传超时"
+        except requests.exceptions.ConnectionError:
+            last_wd_error = "WebDAV 网盘连接断开"
+        except Exception as e:
+            last_wd_error = f"WebDAV 上传文件发生异常（{e}）"
         time.sleep(5*(i+1))
     return False
 
@@ -469,6 +527,7 @@ def crawl():
                     browser.close(); sys.exit(5)
             except Exception as e:
                 print(f"[warn] Failed to open/crawl URL {u}: {e}")
+                fails.append(f"博主链接【{u}】页面打开或抓取失败（原因：{e}，可能是网络连接超时或抖音页面结构变动）")
             finally:
                 try:
                     page.close()
@@ -624,17 +683,19 @@ def process(item, is_degraded=False, is_refetch=False):
                     files.append(f"{folder}/{aid}_img{i}_live.mp4")
                     live_ok = True
                 else:
-                    fails.append(f"作品【{aid}】图{i} LivePhoto动图下载或保存失败")
+                    cause = last_fetch_error if not vd else last_wd_error
+                    fails.append(f"作品【{aid}】图{i} LivePhoto动图下载或保存失败（原因：{cause or '动图地址无效或网盘写入失败'}）")
 
             if not live_ok:
                 data = fetch(re.sub(r"~tplv-[^?]+", "~tplv-dy-aweme-original:jpeg", urls[-1]), retry=1) or fetch(urls[-1])
                 if data is None:
-                    fails.append(f"作品【{aid}】图{i} 原图下载失败"); continue
+                    fails.append(f"作品【{aid}】图{i} 原图下载失败（原因：{last_fetch_error or '图集图片链接已失效或网络连接超时'}）")
+                    continue
                 path = f"{folder}/{aid}_img{i}.{guess_ext(urls[-1])}"
                 if wd_put(path, data):
                     files.append(path)
                 else:
-                    fails.append(f"作品【{aid}】图{i} WebDAV网盘上传失败")
+                    fails.append(f"作品【{aid}】图{i} WebDAV网盘上传失败（原因：{last_wd_error or '网盘连接超时或存储权限不足'}）")
     else:
         # ---------------- 视频作品处理 ----------------
         video = item.get("video") or {}
@@ -660,13 +721,15 @@ def process(item, is_degraded=False, is_refetch=False):
         if url:
             tmp = fetch_to_tmp(url)
             if tmp is None:
-                fails.append(f"视频【{aid}】网络数据抓取失败")
+                fails.append(f"视频【{aid}】网络数据抓取失败（原因：{last_fetch_error or '视频播放地址已失效或网络请求超时'}）")
             elif wd_put_file(f"{folder}/{aid}_video.mp4", tmp):
                 files.append(f"{folder}/{aid}_video.mp4")
                 os.unlink(tmp)
             else:
-                fails.append(f"视频【{aid}】WebDAV网盘上传失败")
+                fails.append(f"视频【{aid}】WebDAV网盘上传失败（原因：{last_wd_error or '网盘连接超时或存储空间不足'}）")
                 os.unlink(tmp)
+        else:
+            fails.append(f"视频【{aid}】无有效下载链接（原因：视频可能为私密作品或受版权保护无法提取播放地址）")
 
     cover_ok = False
     cover_url, cover_ext = cover_of(item)
@@ -767,7 +830,7 @@ def main():
                 else:
                     author_stats[nick]["fail_cnt"] += 1
             except Exception as e:
-                fails.append(f"作品【{hid}】重新抓取高清发生异常：{e}")
+                fails.append(f"作品【{hid}】重新抓取高清发生异常（原因：{e}）")
                 author_stats[nick]["fail_cnt"] += 1
             time.sleep(random.randint(2, 5))
             continue
@@ -788,7 +851,7 @@ def main():
             else:
                 author_stats[nick]["fail_cnt"] += 1
         except Exception as e:
-            fails.append(f"作品【{hid}】处理发生异常：{e}")
+            fails.append(f"作品【{hid}】处理发生异常（原因：{e}）")
             author_stats[nick]["fail_cnt"] += 1
 
         time.sleep(random.randint(3, 8))
