@@ -477,6 +477,8 @@ def crawl():
         finally:
             warm.close()
 
+        yielded = set()
+
         for u in SHARE_URLS:
             before_keys = set(collected.keys())
             page = ctx.new_page()
@@ -530,8 +532,14 @@ def crawl():
                     new_keys = set(collected.keys()) - before_keys
 
                 if new_keys:
+                    yielded.add(u)
                     sample_it = collected[list(new_keys)[0]]
                     url_author_map[u] = author_of(sample_it)
+                else:
+                    try:
+                        print(f"[diag] zero-yield after retry: url={u} final_url={page.url} body_len={len(page.content())}")
+                    except Exception:
+                        pass
 
                 # 检查验证码风控
                 if ("verify" in page.url) or ("captcha" in page.url):
@@ -542,6 +550,42 @@ def crawl():
             except Exception as e:
                 print(f"[warn] Failed to open/crawl URL {u}: {e}")
                 fails.append(f"博主链接【{u}】页面打开或抓取失败（原因：{e}，可能是网络连接超时或抖音页面结构变动）")
+            finally:
+                try:
+                    page.close()
+                except Exception:
+                    pass
+
+        # 二轮补抓：会话已完全热，对本轮 0 收获的博主用新页面再开一次
+        for u in [x for x in SHARE_URLS if x not in yielded]:
+            before_keys = set(collected.keys())
+            page = ctx.new_page()
+            page.on("response", on_resp)
+            try:
+                print(f"[crawl] Second pass for zero-yield URL: {u}")
+                page.goto(u, wait_until="domcontentloaded", timeout=60000)
+                try:
+                    page.wait_for_url("**/user/**", timeout=30000)
+                except Exception:
+                    pass
+                time.sleep(8)
+                if not is_cookie_invalid:
+                    page.mouse.move(720, 700)
+                    for _ in range(3):
+                        b2 = len(collected)
+                        page.mouse.wheel(0, 3000)
+                        page.wait_for_timeout(4000)
+                        if len(collected) > b2:
+                            break
+                new_keys = set(collected.keys()) - before_keys
+                if new_keys:
+                    yielded.add(u)
+                    url_author_map[u] = author_of(collected[list(new_keys)[0]])
+                    print(f"[crawl] Second pass succeeded: {u} -> {len(new_keys)} new items")
+                else:
+                    print(f"[crawl] Second pass still empty: {u}")
+            except Exception as e:
+                print(f"[warn] second pass failed: {u}: {e}")
             finally:
                 try:
                     page.close()
