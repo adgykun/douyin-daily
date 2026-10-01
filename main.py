@@ -398,6 +398,14 @@ def guess_ext(url, default="jpg"):
     m = re.search(r"\.(jpg|jpeg|png|webp|heic|mp4|mp3)(\?|$)", url)
     return m.group(1) if m else default
 
+def media_missing(it):
+    """判断作品数据是否缺失下载地址（图集所有地址列表为空，或视频无播放地址）"""
+    images = it.get("images") or []
+    if images:
+        return all(not (img.get("url_list") or img.get("download_url_list")) for img in images)
+    video = it.get("video") or {}
+    return not (video.get("bit_rate") or (video.get("play_addr") or {}).get("url_list"))
+
 # ------------------------------------------------------------------------------
 # 4. 抖音网页抓取与数据监听
 # ------------------------------------------------------------------------------
@@ -424,6 +432,12 @@ def on_resp(resp):
                     print(f"[warn] API returned non-zero status code ({st}), single occurrence, not marking invalid yet")
             for it in j.get("aweme_list") or []:
                 collected[it["aweme_id"]] = it
+        if "/aweme/v1/web/aweme/detail/" in resp.url and resp.status == 200:
+            j = resp.json()
+            for d in j.get("aweme_details") or []:
+                if d.get("aweme_id"):
+                    collected[d["aweme_id"]] = d
+                    print(f"[enrich] detail data captured for {d['aweme_id']}")
     except Exception as e:
         print(f"[warn] on_resp parse error: {e}")
 
@@ -528,6 +542,25 @@ def crawl():
             except Exception as e:
                 print(f"[warn] Failed to open/crawl URL {u}: {e}")
                 fails.append(f"博主链接【{u}】页面打开或抓取失败（原因：{e}，可能是网络连接超时或抖音页面结构变动）")
+            finally:
+                try:
+                    page.close()
+                except Exception:
+                    pass
+
+        # 对缺失下载地址的作品补开详情页，触发 detail 接口补全完整地址
+        for hid in list(collected.keys()):
+            if not media_missing(collected[hid]):
+                continue
+            kind = "note" if collected[hid].get("images") else "video"
+            page = ctx.new_page()
+            page.on("response", on_resp)
+            try:
+                print(f"[enrich] Opening detail page for missing-media item: {hid}")
+                page.goto(f"https://www.douyin.com/{kind}/{hid}", wait_until="domcontentloaded", timeout=60000)
+                page.wait_for_timeout(8000)
+            except Exception as e:
+                print(f"[warn] enrich detail page failed for {hid}: {e}")
             finally:
                 try:
                     page.close()
@@ -856,6 +889,18 @@ def main():
                 print(f"[ok] {hid} saved (degraded={is_cookie_invalid})")
             else:
                 author_stats[nick]["fail_cnt"] += 1
+                if media_missing(it):
+                    history[hid] = {
+                        "date": DATE,
+                        "files": 0,
+                        "desc": (it.get("desc") or "")[:40],
+                        "cover": False,
+                        "degraded": False,
+                        "clarity": "",
+                        "aid": "unavailable_marked",
+                        "unavailable": True
+                    }
+                    print(f"[mark-unavailable] {hid} 补抓详情后仍无下载地址，已标记，后续运行自动跳过")
         except Exception as e:
             fails.append(f"作品【{hid}】处理发生异常（原因：{e}）")
             author_stats[nick]["fail_cnt"] += 1
