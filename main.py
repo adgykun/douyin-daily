@@ -673,6 +673,7 @@ def process(item, is_degraded=False, is_refetch=False):
         for i, img in enumerate(images):
             urls = img.get("url_list") or img.get("download_url_list") or []
             if not urls:
+                fails.append(f"作品【{aid}】图{i} 无可用下载地址（url_list 与 download_url_list 均为空）")
                 continue
 
             lv = ((img.get("video") or {}).get("play_addr") or {}).get("url_list") or []
@@ -753,6 +754,11 @@ def process(item, is_degraded=False, is_refetch=False):
         else:
             new_cnt += 1
         return True
+
+    # 兜底记录：没有任何文件被成功保存
+    print(f"[fail] {hid} {aid} 未保存成功任何文件 (degraded={is_degraded})")
+    if not any(aid in msg for msg in fails):
+        fails.append(f"作品【{aid}】（ID {hid}）未保存成功任何文件，且无具体失败原因")
     return False
 
 # ------------------------------------------------------------------------------
