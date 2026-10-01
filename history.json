@@ -1329,5 +1329,14 @@
     "clarity": "",
     "aid": "unavailable_marked",
     "unavailable": true
+  },
+  "7691665585638637169": {
+    "date": "2026-10-02",
+    "files": 1,
+    "desc": "",
+    "cover": true,
+    "degraded": false,
+    "clarity": "1080P原画",
+    "aid": "2026-10-01_untitled_[720P]"
   }
 }
