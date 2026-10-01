@@ -1324,7 +1324,7 @@
     "date": "2026-10-01",
     "files": 0,
     "desc": "发点存货",
-    "cover": false,
+    "cover": true,
     "degraded": false,
     "clarity": "",
     "aid": "unavailable_marked",
