@@ -1319,5 +1319,15 @@
     "degraded": false,
     "clarity": "1080P原画",
     "aid": "2026-10-01_untitled_[1080P]"
+  },
+  "7677961175950586865": {
+    "date": "2026-10-01",
+    "files": 0,
+    "desc": "发点存货",
+    "cover": false,
+    "degraded": false,
+    "clarity": "",
+    "aid": "unavailable_marked",
+    "unavailable": true
   }
 }
