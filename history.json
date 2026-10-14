@@ -1437,5 +1437,23 @@
     "degraded": false,
     "clarity": "1080P原画",
     "aid": "2026-10-11_小胖显宝_[720P]"
+  },
+  "7696520082080425338": {
+    "date": "2026-10-14",
+    "files": 1,
+    "desc": "",
+    "cover": true,
+    "degraded": false,
+    "clarity": "1080P原画",
+    "aid": "2026-10-14_untitled_[720P]"
+  },
+  "7696520040544194801": {
+    "date": "2026-10-14",
+    "files": 1,
+    "desc": "食物魔王护",
+    "cover": true,
+    "degraded": false,
+    "clarity": "1080P原画",
+    "aid": "2026-10-14_食物魔王护_[720P]"
   }
 }
