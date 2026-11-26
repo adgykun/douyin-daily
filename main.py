@@ -960,9 +960,36 @@ def main():
     tot_failed = sum(s["fail_cnt"] for s in author_stats.values())
     print(f"[info] Run summary: Success {tot_success}, Refetched {tot_refetch}, Skipped {tot_skipped}, Failed {tot_failed}")
 
-    # 4. 生成日报并推送
+    # 4. 仅在「抓到新作品 / 恢复高清重抓 / 抓取失败 / Cookie 失效」时推送；纯空转不上报
+    has_new = (tot_success + tot_refetch) > 0
+    has_failure = tot_failed > 0 or bool(fails)
+
+    # Cookie 失效属于需要人工处理的问题，但每天最多提醒一次，避免三档定时重复轰炸
+    notify_state = history.get("_notify")
+    if not isinstance(notify_state, dict):
+        notify_state = {}
+    cookie_notice_date = notify_state.get("cookie_invalid_date", "")
+    should_notice_cookie = bool(is_cookie_invalid) and cookie_notice_date != DATE
+
+    if not (has_new or has_failure or should_notice_cookie):
+        print(
+            f"[info] 本轮无新增作品、无抓取失败，跳过飞书推送"
+            f"（Success {tot_success}, Refetched {tot_refetch}, Failed {tot_failed}, "
+            f"cookie_invalid={is_cookie_invalid}）"
+        )
+        return
+
     title, content = generate_daily_report(author_stats, fails)
-    push(title, content)
+    if not has_new:
+        title = "⚠️【抖音特工异常战报】"
+
+    if not push(title, content):
+        print("[warn] 飞书推送失败（已重试），请检查 FEISHU_WEBHOOK 是否有效", file=sys.stderr)
+    elif is_cookie_invalid:
+        # 推送成功才记账，避免推送失败后当天再也提醒不到
+        notify_state["cookie_invalid_date"] = DATE
+        history["_notify"] = notify_state
+        save_history()
 
 if __name__ == "__main__":
     main()
